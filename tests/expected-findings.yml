@@ -1,0 +1,92 @@
+version: 1
+
+# Golden expectations for the candidate rules.
+# These are intentionally small, deterministic examples that an agent or future
+# LogCraft runner can use to validate rule behavior.
+
+cases:
+  - id: runtime-browser-script
+    fixture: fixtures/runtime-aware/browser-script.astro
+    findings:
+      - rule: runtime-aware-logging
+        severity: low
+        expected: true
+        reason: browser console output must be classified as client-side runtime
+
+  - id: log-amplification-observer
+    fixture: fixtures/log-amplification/browser-observer.js
+    findings:
+      - rule: log-amplification
+        severity: high
+        expected: true
+        reason: unbounded MutationObserver callback logs the full mutation collection
+
+  - id: log-amplification-safe
+    fixture: fixtures/log-amplification/browser-safe.js
+    findings:
+      - rule: log-amplification
+        expected: false
+        reason: debug-only logging with bounded sampling
+
+  - id: verbose-ci
+    fixture: fixtures/verbose-output/ci-verbose.sh
+    findings:
+      - rule: verbose-output
+        severity: medium
+        expected: true
+        reason: verbose output is enabled during normal CI/deploy execution
+
+  - id: verbose-diagnostic
+    fixture: fixtures/verbose-output/ci-diagnostic.sh
+    findings:
+      - rule: verbose-output
+        expected: false
+        reason: explicitly scoped troubleshooting workflow is a documented false positive
+
+  - id: secret-safe-leak
+    fixture: fixtures/secret-safe-output/leaky.sh
+    findings:
+      - rule: secret-safe-output
+        severity: high
+        expected: true
+        reason: verbose network diagnostics run with credential-bearing FTP arguments
+
+  - id: secret-safe-safe
+    fixture: fixtures/secret-safe-output/safe.sh
+    findings:
+      - rule: secret-safe-output
+        expected: false
+        reason: only safe metadata is emitted
+
+  - id: msp-deploy
+    fixture: fixtures/anonymous-static-site/github-actions/actualiza-html-stagging.yml
+    findings:
+      - rule: verbose-output
+        severity: medium
+        expected: true
+        reason: lftp mirror uses --verbose during normal deployment
+      - rule: github-actions-summary
+        expected: true
+        reason: deployment result is emitted as raw output without a concise summary
+      - rule: ci-context-rich-output
+        expected: true
+        reason: deploy output lacks a structured environment/revision/result summary
+
+  - id: msp-ftp-test
+    fixture: fixtures/anonymous-static-site/github-actions/prueba-conexion-ftp.yml
+    findings:
+      - rule: verbose-output
+        severity: medium
+        expected: true
+        reason: curl --verbose is enabled in the workflow
+      - rule: secret-safe-output
+        severity: high
+        expected: true
+        reason: verbose diagnostics are combined with FTP credentials
+
+  - id: msp-safe-summary
+    fixture: fixtures/anonymous-static-site/github-actions/safe-summary.yml
+    findings:
+      - rule: github-actions-summary
+        expected: false
+        reason: concise environment, commit, build, and result context is already provided
