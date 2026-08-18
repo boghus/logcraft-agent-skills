@@ -1,0 +1,15 @@
+name: Safe deploy summary
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy
+        run: |
+          echo "Deploy completado"
+          echo "Environment: staging"
+          echo "Commit: ${GITHUB_SHA::7}"
+          echo "Result: success"
