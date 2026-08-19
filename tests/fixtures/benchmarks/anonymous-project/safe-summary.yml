@@ -1,0 +1,21 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy
+        run: |
+          echo "Environment: staging"
+          echo "Commit: ${GITHUB_SHA::7}"
+          echo "Build: success"
+          echo "Deploy: success"
+          {
+            echo "### Deploy"
+            echo "- Environment: staging"
+            echo "- Commit: ${GITHUB_SHA::7}"
+            echo "- Result: success"
+          } >> "$GITHUB_STEP_SUMMARY"
