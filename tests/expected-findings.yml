@@ -90,3 +90,38 @@ cases:
       - rule: github-actions-summary
         expected: false
         reason: concise environment, commit, build, and result context is already provided
+
+  - id: external-anonymous-runtime
+    fixture: fixtures/benchmarks/anonymous-project/ci-reporter.ts
+    findings:
+      - rule: runtime-aware-logging
+        expected: false
+        reason: the fixture is a Node/CI test reporter, not browser application logging
+      - rule: log-amplification
+        expected: false
+        reason: test-result callbacks are not established as an unbounded high-frequency production path
+      - rule: secret-safe-output
+        expected: false
+        reason: no secret value or credential-bearing object is logged
+
+  - id: external-anonymous-ci
+    fixture: fixtures/benchmarks/anonymous-project/ci.yml
+    findings:
+      - rule: ci-context-rich-output
+        severity: medium
+        expected: true
+        reason: important build and test operations rely on raw workflow output without a consistent operational summary
+      - rule: github-actions-summary
+        severity: medium
+        expected: true
+        reason: important CI results are not surfaced through a concise step summary
+      - rule: verbose-output
+        expected: false
+        reason: no permanently enabled verbose or debug flag is present
+
+  - id: external-anonymous-safe-summary
+    fixture: fixtures/benchmarks/anonymous-project/safe-summary.yml
+    findings:
+      - rule: github-actions-summary
+        expected: false
+        reason: the deployment exposes concise environment, revision, and result context through GITHUB_STEP_SUMMARY
