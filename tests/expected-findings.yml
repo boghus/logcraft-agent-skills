@@ -58,8 +58,8 @@ cases:
         expected: false
         reason: only safe metadata is emitted
 
-  - id: msp-deploy
-    fixture: fixtures/anonymous-static-site/github-actions/actualiza-html-stagging.yml
+  - id: anonymous-deploy
+    fixture: fixtures/anonymous-static-site/github-actions/deploy.yml
     findings:
       - rule: verbose-output
         severity: medium
@@ -72,19 +72,19 @@ cases:
         expected: true
         reason: deploy output lacks a structured environment/revision/result summary
 
-  - id: msp-ftp-test
-    fixture: fixtures/anonymous-static-site/github-actions/prueba-conexion-ftp.yml
+  - id: anonymous-ftp-test
+    fixture: fixtures/anonymous-static-site/github-actions/ftp-check.yml
     findings:
       - rule: verbose-output
         severity: medium
-        expected: true
-        reason: curl --verbose is enabled in the workflow
+        expected: false
+        reason: the FTP diagnostic workflow is manually triggered with workflow_dispatch
       - rule: secret-safe-output
         severity: high
         expected: true
         reason: verbose diagnostics are combined with FTP credentials
 
-  - id: msp-safe-summary
+  - id: anonymous-safe-summary
     fixture: fixtures/anonymous-static-site/github-actions/safe-summary.yml
     findings:
       - rule: github-actions-summary
