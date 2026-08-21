@@ -15,7 +15,7 @@ Logging is a design decision. Do not recommend a log merely because a code path 
 
 ## Questions to ask before logging
 
-Evaluate the event in this order:
+First determine the execution context with `runtime-aware-logging`. Then evaluate the event in this order:
 
 1. **What happened?**
    - Identify the meaningful event, state transition, decision, failure, or interaction.
@@ -24,12 +24,12 @@ Evaluate the event in this order:
 3. **What decision could this log support?**
    - A useful log should help someone diagnose, correlate, measure, or understand an operationally relevant event.
 4. **Is the event already observable elsewhere?**
-   - Avoid adding a duplicate log when the same event is already recorded by a reliable logging, tracing, metrics, or telemetry mechanism.
-5. **What is the execution context?**
-   - Apply `runtime-aware-logging` before assuming that application logging is appropriate. Browser, build-time, server, CI/CD, deployment, and local development output have different purposes.
-6. **How often can it happen?**
+   - Do not treat metrics, traces, alerts, status checks, or other signals as automatically equivalent to logs.
+   - Consider an event a duplicate only when the alternative mechanism answers the same operational question with sufficient diagnostic context.
+   - A metric may confirm that something happened while a log preserves identifiers, reason, outcome, or other context needed to diagnose it.
+5. **How often can it happen?**
    - Consider frequency and execution paths before adding the log. High-frequency events may require sampling, aggregation, a metric, or no log at all. Use `log-amplification` when repeated execution can multiply output.
-7. **Does it contain information that should not be logged?**
+6. **Does it contain information that should not be logged?**
    - Consider secrets, credentials, tokens, personal data, financial information, full payloads, and other sensitive values. Use `secret-safe-output` when evaluating output exposure.
 
 ## Prefer logging when
@@ -92,10 +92,15 @@ These statements describe execution rather than an operationally meaningful even
 Prefer a log that records the outcome of an important operation and enough safe context to investigate it:
 
 ```java
-log.info("Payment processed", paymentId, orderId, durationMs);
+log.info(
+    "Payment processed paymentId={} orderId={} durationMs={}",
+    paymentId,
+    orderId,
+    durationMs
+);
 ```
 
-The exact fields and structured format depend on the logging framework. Do not invent identifiers or fields that do not exist merely to make the example look complete.
+This example uses SLF4J-style placeholders. Use the logging API appropriate to the project's runtime and existing conventions rather than assuming every project uses SLF4J.
 
 ## Failure events
 
