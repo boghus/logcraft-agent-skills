@@ -23,6 +23,14 @@ This repository contains context-aware logging rules for common runtime, CI/CD, 
 
 These are **context-aware rules**, not automatic mandates. Each rule should be evaluated against the runtime, execution path, data sensitivity, and operational purpose before recommending a change.
 
+## Logging design guidance
+
+LogCraft also provides design guidance for deciding whether a log should exist before recommending how to implement it:
+
+- `logging-design-guidance` — decide whether an event has enough operational value to justify a log, while considering runtime, frequency, existing observability, and data sensitivity.
+
+The guidance is intentionally principle-based. It should help an AI agent reason about the operational question a log needs to answer instead of prescribing a log for every code path.
+
 ## Principles
 
 - **Context before quantity:** a log should help explain what happened and why.
@@ -72,7 +80,7 @@ The fixtures also cover security-sensitive output. For example, an explicit secr
 
 ## Project status
 
-The current rules are evolving through real-world cases. The repository is used to validate which recommendations are generalizable and which need to be adapted to specific technologies.
+The current rules and guidance are evolving through real-world cases. The repository is used to validate which recommendations are generalizable and which need to be adapted to specific technologies.
 
 ## Documentation
 
@@ -88,6 +96,8 @@ New rules should explain:
 3. the expected behavior;
 4. relevant false positives;
 5. the technologies or runtimes where they apply.
+
+Design guidance should explain the decision criteria, useful exceptions, and relevant context rather than turning contextual recommendations into universal mandates.
 
 Rules should avoid universal recommendations when technical context changes their validity.
 
