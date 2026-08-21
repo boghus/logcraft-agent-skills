@@ -14,7 +14,8 @@ Determine what the log is actually about:
 2. Inspect the project context to discover the relevant entities, relationships, and identifiers rather than assuming naming conventions.
 3. Prefer the most atomic meaningful identifier that uniquely identifies the target of the event.
 4. Consider the identifier's scope and uniqueness. An identifier is not sufficient merely because it is unique somewhere in the system.
-5. If no single identifier is sufficient, evaluate whether a composite identifier is required.
+5. If the most atomic identifier is not sufficient, look for another single identifier that is sufficient before evaluating a composite identifier.
+6. Evaluate a composite identifier only when no single identifier is sufficient.
 
 The agent should reason from the code and domain context. Do not assume that `id`, `entityId`, or a UUID is automatically the correct choice.
 
@@ -104,9 +105,11 @@ Generate a UUID only when an identifier is genuinely needed and no suitable exis
 A generated UUID is most useful for an operation, event, or execution that has no natural identity, such as:
 
 - an internal operation without a request identifier;
-- a newly created entity before persistence assigns its identity;
+- an operation, event, or execution related to an entity before persistence assigns its identity;
 - an asynchronous task that needs an execution identity;
 - an event that must be distinguished from other simultaneous events.
+
+A domain entity should receive a generated UUID before persistence only when the domain contract explicitly defines client-generated entity identifiers.
 
 The UUID should be sufficiently unique for the scope in which it is used. Do not shorten or transform it merely for visual convenience if doing so reduces the identifier's uniqueness or interoperability.
 
@@ -130,9 +133,11 @@ Service    -> UUID A
 Repository -> UUID A
 ```
 
-When an operation crosses process or service boundaries, propagate the existing correlation or tracing identifier through the mechanism already used by the system, such as request headers, message metadata, or framework context. Do not invent a new propagation mechanism when the platform already provides one.
+When an operation crosses process or service boundaries, propagate the identifiers through the mechanism already used by the system. If a generated operation identifier is distinct from an existing `requestId`, `correlationId`, or `traceId`, preserve both when each has a distinct operational purpose rather than silently replacing one with the other.
 
-For asynchronous workflows, preserve the operation's identifier in the message metadata or established tracing context so downstream logs can be related to the originating operation.
+Use request headers, message metadata, or framework context according to the system's established conventions. Do not invent a new propagation mechanism when the platform already provides one.
+
+For asynchronous workflows, preserve the operation's identifier in message metadata or established tracing context so downstream logs can be related to the originating operation. When both an operation identifier and a tracing/correlation identifier coexist, the existing tracing/correlation mechanism remains the transport for cross-boundary correlation unless the system explicitly defines the operation identifier as that mechanism; the operation identifier should remain available in the downstream logging context when it has independent meaning.
 
 ## Decision flow
 
@@ -151,19 +156,22 @@ Is there an existing identifier for that target?
   yes        no
    |         |
    v         v
-Is it the   Is a composite
-most atomic identifier required?
+Is it the   Is another single
+most atomic identifier sufficient?
 meaningful      |       |
 identifier?   yes       no
    |           |         |
   yes          v         v
-   |       use the     Use the closest
-   |       minimum     meaningful context
-   |       necessary   or operation identity
-   |       combination
-   |
-   v
-Use it
+   |       Use that   Is a composite
+   |       identifier identifier required?
+   |                     |       |
+   v                    yes      no
+Use it                     |       |
+                           v       v
+                      Use the    Use the closest
+                      minimum    meaningful context
+                      necessary  or operation identity
+                      combination
 ```
 
 If an operation still needs an identity after these checks, look for an existing correlation/tracing identifier before generating a UUID.
@@ -187,8 +195,9 @@ When reviewing a log:
 1. Identify the event and the entity or operation it represents.
 2. Inspect the surrounding code and domain model for available identifiers and relationships.
 3. Select the most atomic meaningful identifier that uniquely identifies the target in its relevant scope.
-4. Consider a composite identifier only when no single identifier is sufficient.
-5. If the target has no identifier yet, use the closest meaningful existing context and preserve an existing correlation/tracing identifier when available.
-6. Before recommending a UUID, verify that no suitable entity, request, correlation, or tracing identifier already exists.
-7. If a UUID is required, ensure it is generated once for the relevant operation and propagated consistently.
-8. Explain the reasoning when recommending a different identifier; do not flag identifiers based on naming alone.
+4. If that identifier is insufficient, check whether another single identifier is sufficient before considering a composite identifier.
+5. Consider a composite identifier only when no single identifier is sufficient.
+6. If the target has no identifier yet, use the closest meaningful existing context and preserve an existing correlation/tracing identifier when available.
+7. Before recommending a UUID, verify that no suitable entity, request, correlation, or tracing identifier already exists.
+8. If a UUID is required, ensure it is generated once for the relevant operation and propagated consistently, preserving any distinct existing tracing/correlation identifier as required.
+9. Explain the reasoning when recommending a different identifier; do not flag identifiers based on naming alone.
