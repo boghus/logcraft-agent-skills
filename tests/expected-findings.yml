@@ -13,6 +13,13 @@ cases:
         expected: true
         reason: browser console output must be classified as client-side runtime
 
+  - id: runtime-logger-destination
+    fixture: fixtures/runtime-aware/logger-destination.js
+    findings:
+      - rule: runtime-aware-logging
+        expected: false
+        reason: console.error is the sink of an explicit logger destination, not application-level browser logging
+
   - id: log-amplification-observer
     fixture: fixtures/log-amplification/browser-observer.js
     findings:
@@ -27,6 +34,13 @@ cases:
       - rule: log-amplification
         expected: false
         reason: debug-only logging with bounded sampling
+
+  - id: log-amplification-finite-build
+    fixture: fixtures/log-amplification/finite-build-validation.js
+    findings:
+      - rule: log-amplification
+        expected: false
+        reason: finite build validation with actionable per-item errors is not sufficient evidence of production log amplification
 
   - id: verbose-ci
     fixture: fixtures/verbose-output/ci-verbose.sh
@@ -43,6 +57,13 @@ cases:
         expected: false
         reason: explicitly scoped troubleshooting workflow is a documented false positive
 
+  - id: verbose-normal-output
+    fixture: fixtures/verbose-output/normal-output.sh
+    findings:
+      - rule: verbose-output
+        expected: false
+        reason: ordinary command output is not evidence that verbose mode was explicitly enabled
+
   - id: secret-safe-leak
     fixture: fixtures/secret-safe-output/leaky.sh
     findings:
@@ -58,6 +79,21 @@ cases:
         expected: false
         reason: only safe metadata is emitted
 
+  - id: secret-safe-read-no-output
+    fixture: fixtures/secret-safe-output/secret-read-no-output.sh
+    findings:
+      - rule: secret-safe-output
+        expected: false
+        reason: a secret is read but only a safe constant message reaches the output sink
+
+  - id: secret-safe-direct-output
+    fixture: fixtures/secret-safe-output/direct-secret-output.sh
+    findings:
+      - rule: secret-safe-output
+        severity: high
+        expected: true
+        reason: a secret expansion is written directly to an output sink
+
   - id: anonymous-deploy
     fixture: fixtures/anonymous-static-site/github-actions/deploy.yml
     findings:
@@ -66,6 +102,7 @@ cases:
         expected: true
         reason: lftp mirror uses --verbose during normal deployment
       - rule: github-actions-summary
+        severity: medium
         expected: true
         reason: deployment result is emitted as raw output without a concise summary
       - rule: ci-context-rich-output
@@ -76,7 +113,6 @@ cases:
     fixture: fixtures/anonymous-static-site/github-actions/ftp-check.yml
     findings:
       - rule: verbose-output
-        severity: medium
         expected: false
         reason: the FTP diagnostic workflow is manually triggered with workflow_dispatch
       - rule: secret-safe-output

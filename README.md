@@ -55,7 +55,13 @@ LogCraft aims to detect that difference and explain the risk before recommending
 
 The candidate rules include deterministic contract tests under [`tests/`](tests/). They contain positive and negative fixtures plus golden expectations, including reduced reproductions of logging patterns found in MSP Energia.
 
-The tests define expected rule behavior without requiring an analysis engine; an automated runner can consume the same fixtures and expectations later.
+Run the dependency-free contract validation with:
+
+```bash
+node tests/run-tests.mjs
+```
+
+The runner validates fixture coverage and expectation structure. A future or external LogCraft analyzer can be plugged into the same runner through `LOGCRAFT_ANALYZER` without coupling the tests to a specific AI provider or parser.
 
 ## Project status
 
@@ -84,4 +90,4 @@ Rules should avoid universal recommendations when technical context changes thei
 
 ## License
 
-See the repository license for the applicable terms of use and contribution.
+See the LICENSE file for the applicable terms of use and contribution.

@@ -1,17 +1,46 @@
 # LogCraft rule tests
 
-This directory contains deterministic fixtures and golden expectations for the candidate logging rules.
+This directory contains deterministic fixtures, golden expectations, and a dependency-free contract test runner for the candidate logging rules.
 
 ## Purpose
 
-The tests define the behavior expected from each rule before a runtime/CLI implementation exists. They are intended to be usable by an AI coding agent today and by an automated LogCraft runner later.
-
-Each case in `expected-findings.yml` specifies:
+The tests define the behavior expected from each rule. Each case in `expected-findings.yml` specifies:
 
 - the fixture to analyze;
 - the rule that should or should not match;
 - the expected severity when applicable;
 - the reason for the expected result.
+
+## Running the tests
+
+The contract runner requires only Node.js and has no npm dependencies:
+
+```bash
+node tests/run-tests.mjs
+```
+
+The runner validates the contract and then executes the built-in deterministic analyzer against every assertion. This makes the CI test meaningful without depending on an AI provider, network service, or non-deterministic model output.
+
+An external analysis engine can replace the built-in analyzer through `LOGCRAFT_ANALYZER`. The executable must accept `--rule <rule>` and `--fixture <path>` and return JSON containing at least `finding: true|false`; it may also return `severity` for severity assertions.
+
+Example interface:
+
+```text
+LOGCRAFT_ANALYZER=./bin/logcraft-analyzer node tests/run-tests.mjs
+```
+
+The built-in analyzer is intentionally small and deterministic. It validates the patterns represented by the current contract fixtures; it is not intended to replace the AI-agent skills or serve as a general-purpose static-analysis engine.
+
+## Context-aware regression tests
+
+The Astro benchmark showed that syntax alone is not enough to classify a logging pattern. The suite therefore includes explicit negative controls for:
+
+- `console.*` used as the sink of a logger destination;
+- per-item errors in a finite build/content validation loop;
+- a secret environment variable that is read but never emitted;
+- normal command output without an explicit verbose/debug flag.
+
+These cases protect against regressions where LogCraft reports a finding solely because it sees `console.error`, a loop, a secret-looking variable, or ordinary CLI output.
 
 ## Anonymous real-world validation cases
 
@@ -40,4 +69,4 @@ The external anonymous benchmark additionally validates:
 
 A positive fixture should represent a concrete rule violation. A negative fixture should represent an explicit false-positive case from the corresponding skill definition.
 
-These are **contract tests**, not a parser or static-analysis engine. The execution mechanism belongs to the future LogCraft runner.
+The runner separates **contract validation** from **analysis execution**, but both now run by default. Contract validation checks the test data itself; the built-in deterministic analyzer checks the behavior represented by the current fixtures. An external analyzer can be supplied later without changing the contract format.
