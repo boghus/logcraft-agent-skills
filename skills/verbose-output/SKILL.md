@@ -21,7 +21,7 @@ Inspect CI/CD and scripts for:
 
 For short or ambiguous flags such as `-v`, first identify the relevant CLI command and verify from its documented or observable option semantics that the flag actually enables verbosity. Do not assume `-v` universally means verbose output.
 
-Consider whether the command runs on every build/deploy or only in a diagnostic path.
+Consider whether the command runs on every build/deploy or only in a diagnostic path. Also distinguish ordinary operational progress output from a diagnostic mode: a CI tool printing one concise step result is not equivalent to protocol-level or file-by-file tracing.
 
 ## Expected behavior
 
@@ -37,6 +37,14 @@ Any diagnostic or verbose exception must still exclude secrets and sensitive dat
 
 If this runs on every CI execution, recommend a quiet default plus a dedicated diagnostic mode.
 
+Do not flag an intentional operational output such as:
+
+```yaml
+- run: npm test
+```
+
+merely because the command naturally emits test progress. The finding requires evidence that verbosity is explicitly enabled or materially excessive.
+
 ## Severity guidance
 
 - High: verbose output can expose credentials, headers, internal URLs, or other sensitive infrastructure details.
@@ -46,6 +54,8 @@ If this runs on every CI execution, recommend a quiet default plus a dedicated d
 ## False positives
 
 Do not flag explicit troubleshooting workflows, commands where verbose output is required to capture a failure, or temporary diagnostics that are clearly scoped and documented. Still require secret-safe output for those diagnostic paths.
+
+Do not infer verbosity from generic output volume alone. First establish that the command or configuration intentionally enables verbose/debug/protocol-level output.
 
 ## Technology
 

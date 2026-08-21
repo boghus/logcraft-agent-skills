@@ -13,3 +13,9 @@ jobs:
           echo "Environment: staging"
           echo "Commit: ${GITHUB_SHA::7}"
           echo "Result: success"
+          {
+            echo "### Deploy"
+            echo "- Environment: staging"
+            echo "- Commit: ${GITHUB_SHA::7}"
+            echo "- Result: success"
+          } >> "$GITHUB_STEP_SUMMARY"
