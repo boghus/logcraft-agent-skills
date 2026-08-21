@@ -10,18 +10,18 @@ LogCraft helps AI agents make better logging decisions. It does not only detect 
 
 The goal is to produce useful logs for diagnosing production problems without creating noise, security risks, or unnecessary complexity.
 
-## Candidate logging rules
+## Rules
 
-This repository currently defines six candidate rules derived from a logging audit of an Astro + JavaScript static site and its GitHub Actions pipelines:
+This repository contains context-aware logging rules for common runtime, CI/CD, verbosity, log-volume, and secret-safety scenarios:
 
-1. `runtime-aware-logging` — classify execution context before recommending logging.
-2. `log-amplification` — detect logs inside high-frequency callbacks and repeated execution paths.
-3. `ci-context-rich-output` — require useful, safe context in CI/CD output.
-4. `github-actions-summary` — prefer concise GitHub Actions summaries over excessive raw output.
-5. `verbose-output` — detect permanently enabled verbose CLI output and recommend diagnostic-only verbosity.
-6. `secret-safe-output` — prevent secrets and sensitive values from being exposed through logs.
+- `runtime-aware-logging` — classify execution context before recommending logging.
+- `log-amplification` — detect logs inside high-frequency callbacks and repeated execution paths.
+- `ci-context-rich-output` — require useful, safe context in CI/CD output.
+- `github-actions-summary` — prefer concise GitHub Actions summaries over excessive raw output.
+- `verbose-output` — detect permanently enabled verbose CLI output and recommend diagnostic-only verbosity.
+- `secret-safe-output` — prevent secrets and sensitive values from being exposed through logs or command output.
 
-These are **candidate skills**, not automatic mandates. Each rule is context-aware and should avoid recommending logging where the runtime or architecture does not justify it.
+These are **context-aware rules**, not automatic mandates. Each rule should be evaluated against the runtime, execution path, data sensitivity, and operational purpose before recommending a change.
 
 ## Principles
 
@@ -53,7 +53,7 @@ LogCraft aims to detect that difference and explain the risk before recommending
 
 ## Validation tests
 
-The candidate rules include deterministic contract tests under [`tests/`](tests/). They contain positive and negative fixtures plus golden expectations, including reduced reproductions of logging patterns found in MSP Energia.
+The rules include deterministic contract tests under [`tests/`](tests/). They contain positive and negative fixtures plus golden expectations, including reduced reproductions of logging patterns found in MSP Energia.
 
 Run the dependency-free contract validation with:
 
@@ -61,11 +61,18 @@ Run the dependency-free contract validation with:
 node tests/run-tests.mjs
 ```
 
-The runner validates fixture coverage and expectation structure. A future or external LogCraft analyzer can be plugged into the same runner through `LOGCRAFT_ANALYZER` without coupling the tests to a specific AI provider or parser.
+The runner performs two validation stages:
+
+1. **Contract validation** checks fixture coverage and golden expectation structure.
+2. **Analyzer validation** runs the built-in deterministic analyzer when configured by the test suite, or an external analyzer through `LOGCRAFT_ANALYZER` when one is supplied.
+
+The contract tests keep rule behavior reproducible without coupling the project to a specific AI provider or parser.
+
+The fixtures also cover security-sensitive output. For example, an explicit secret expansion such as `$FTP_PASSWORD`, `${FTP_PASSWORD}`, or `process.env.FTP_PASSWORD` reaching a direct output sink is treated independently from credential-flow analysis and can produce a high-severity finding.
 
 ## Project status
 
-The current skills are candidate rules evolving through real-world cases. The repository is used to validate which recommendations are generalizable and which need to be adapted to specific technologies.
+The current rules are evolving through real-world cases. The repository is used to validate which recommendations are generalizable and which need to be adapted to specific technologies.
 
 ## Documentation
 
