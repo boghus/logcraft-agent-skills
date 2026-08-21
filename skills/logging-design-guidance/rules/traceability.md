@@ -28,12 +28,15 @@ Examples of context may include:
 
 ```text
 trace_id
+span_id
 request_id
 correlation_id
 operation_id
 ```
 
-The exact mechanism is environment-specific. Do not prescribe a transport or technology when the implementation context does not establish one.
+Standardized propagation mechanisms may also carry trace context, such as the W3C Trace Context fields `traceparent` and `tracestate`.
+
+These are examples, not requirements. The exact mechanism is environment-specific. Do not prescribe a transport or technology when the implementation context does not establish one.
 
 If a component or system uses a different identifier for a legitimate architectural reason, determine whether the relationship to the previous context remains observable. Different identifier values do not by themselves prove a traceability break.
 
