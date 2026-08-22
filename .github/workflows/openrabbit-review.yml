@@ -1,4 +1,4 @@
-name: OpenRabbit Review
+name: OpenRabbit PR Review
 
 on:
   pull_request_target:
@@ -12,7 +12,15 @@ jobs:
   review:
     runs-on: ubuntu-latest
     steps:
-      - name: OpenRabbit
+      - name: Log OpenRabbit review start
+        run: |
+          echo "Starting OpenRabbit PR review."
+          echo "Review mode: both"
+          echo "LLM provider: openrouter"
+          echo "LLM model: openrouter/free"
+
+      - name: Run OpenRabbit review
+        id: openrabbit
         uses: aryan6673/openrabbit@main
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -22,3 +30,10 @@ jobs:
           llm_model: openrouter/free
           review_mode: both
           tone_mode: balanced
+
+      - name: Log OpenRabbit review result
+        if: always()
+        run: |
+          echo "OpenRabbit PR review finished."
+          echo "Job status: ${{ job.status }}"
+          echo "OpenRabbit step outcome: ${{ steps.openrabbit.outcome }}"
