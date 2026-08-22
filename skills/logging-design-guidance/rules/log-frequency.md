@@ -59,3 +59,4 @@ When reviewing repeated logs:
 4. Report a risk only when the implementation provides evidence that repetition can create noise or excessive output without sufficient value.
 5. Do not apply a universal count threshold.
 6. Do not automatically recommend summarization or removal; first establish that the repeated information is unnecessarily redundant.
+7. Keep the recommendation focused on observed repetition and available runtime evidence.
