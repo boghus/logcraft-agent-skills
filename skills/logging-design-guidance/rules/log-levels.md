@@ -101,15 +101,25 @@ Examples include:
 
 Evaluate retries as part of the operation's observable context.
 
-A real retry within the same operation may produce a sequence such as:
+When a retryable attempt fails and another attempt will follow, the failed attempt should be recorded as `WARN` when the retry event is worth recording. The message should make clear that the attempt was unsuccessful and provide useful information about why it failed.
+
+A retry sequence should include enough context to distinguish attempts and understand the failure, for example:
 
 ```text
-attempt 1 -> recoverable failure -> WARN
-attempt 2 -> recoverable failure -> WARN
-attempt 3 -> success -> INFO
+WARN | Attempt 1/3 failed: connection timeout
+WARN | Attempt 2/3 failed: connection timeout
+INFO | Operation succeeded after 2 failed attempts
 ```
 
-The exact amount of retry detail depends on what is useful and what levels the project actually supports.
+At the end of the operation, record a summary of the outcome when the retry sequence is operationally relevant. If the operation succeeds after retries, use `INFO` for the successful outcome and indicate how many attempts or failures occurred. If all retries are exhausted and the operation fails, use `ERROR` for the final outcome and summarize the number of attempts and the relevant final reason.
+
+For example:
+
+```text
+WARN  | Attempt 1/3 failed: dependency unavailable
+WARN  | Attempt 2/3 failed: dependency unavailable
+ERROR | Operation failed after 3 attempts: dependency remained unavailable
+```
 
 Do not assume that two executions are retries merely because one happened after another. A separately triggered execution, such as a manually restarted CI run, may be an independent operation unless an explicit relationship is observable.
 
@@ -156,8 +166,10 @@ When reviewing or recommending log levels:
 3. Identify the levels actually available in the project's existing logging mechanism.
 4. Choose `DEBUG`, `INFO`, `WARN`, or `ERROR` according to their semantic definitions when those levels are available.
 5. Treat retries and recovery as part of the operation's context.
-6. Use the closest available level when the ideal semantic level is not supported.
-7. Do not invent logging capabilities or recommend infrastructure/configuration changes as part of this guidance.
-8. Do not infer severity solely from exception types, message text, exit codes, or CI output.
-9. Do not introduce `TRACE` as part of the LogCraft level model.
-10. Explain the reasoning when the available context is insufficient to determine the appropriate level confidently.
+6. For a retryable failed attempt, use `WARN` when the retry is worth recording and include the attempt and useful failure reason.
+7. At the end of a relevant retry sequence, record an `INFO` summary when the operation succeeds or an `ERROR` summary when it fails after exhausting retries.
+8. Use the closest available level when the ideal semantic level is not supported.
+9. Do not invent logging capabilities or recommend infrastructure/configuration changes as part of this guidance.
+10. Do not infer severity solely from exception types, message text, exit codes, or CI output.
+11. Do not introduce `TRACE` as part of the LogCraft level model.
+12. Explain the reasoning when the available context is insufficient to determine the appropriate level confidently.
