@@ -129,11 +129,28 @@ Do not assume that every project supports every level.
 
 First determine which levels the project's existing logging mechanism provides and uses. This may vary by language, framework, runtime, or logging implementation.
 
-If the semantically preferred level is not available, use the closest available level rather than inventing a new capability or prescribing an infrastructure change.
+When the preferred level is unavailable, choose only an alternative that preserves the event's meaning. `DEBUG` and `INFO` may be alternatives when the event remains appropriately diagnostic or operationally informative. Do not automatically promote an informational or diagnostic event to `WARN` or `ERROR` merely because those levels are available.
 
-For example, if detailed diagnostic information would conceptually fit `DEBUG` but the project only provides `INFO`, `WARN`, and `ERROR`, `INFO` is the appropriate available fallback when the event is still operationally relevant.
+For `WARN`, `INFO` may be used when it can still communicate the operationally relevant condition without falsely implying a definitive failure. Do not automatically convert a recoverable warning into `ERROR`.
 
-Do not recommend installing a logging framework, enabling an additional level, or changing logger configuration as part of this guidance.
+For `ERROR`, do not automatically convert the event into `WARN` or another severity that changes its meaning. If the available mechanism cannot preserve the failure semantics, explain the limitation rather than inventing a new level or prescribing an infrastructure change.
+
+The fallback decision is therefore semantic, not a fixed severity ladder. If no available level can preserve the meaning of the event, do not recommend changing the project's logging infrastructure as part of this guidance.
+
+## Projects without a formal logging system
+
+A project may not have a dedicated logging framework or logger abstraction. Do not assume that it must add one before LogCraft can evaluate its output.
+
+Identify existing output mechanisms such as:
+
+- `console.log`, `console.info`, `console.warn`, `console.error`;
+- `println`;
+- `System.out` and `System.err`;
+- `puts`;
+- `stdout` and `stderr`;
+- equivalent runtime or CI output mechanisms.
+
+Treat these as output mechanisms, not as automatic evidence of a logging level. Evaluate the meaning of each event using the same operational rules. Do not require a new logging framework merely to assign or discuss log semantics.
 
 ## Do not confuse logging levels with execution state
 
@@ -153,7 +170,8 @@ Do not report an incorrect level solely because:
 - the event was unusual but successfully handled;
 - the project's framework does not support the theoretically ideal level;
 - a CI job failed without an application-level `ERROR` log;
-- an application log appears in a CI output stream.
+- an application log appears in a CI output stream;
+- a formal logger is absent.
 
 Use the observable operational context to determine whether the level accurately represents the event.
 
@@ -163,13 +181,14 @@ When reviewing or recommending log levels:
 
 1. Identify the observable operation represented by the event.
 2. Determine the operational meaning and impact of the event within that operation.
-3. Identify the levels actually available in the project's existing logging mechanism.
+3. Identify the levels actually available in the project's existing logging mechanism, if one exists.
 4. Choose `DEBUG`, `INFO`, `WARN`, or `ERROR` according to their semantic definitions when those levels are available.
 5. Treat retries and recovery as part of the operation's context.
 6. For a retryable failed attempt, use `WARN` when the retry is worth recording and include the attempt and useful failure reason.
 7. At the end of a relevant retry sequence, record an `INFO` summary when the operation succeeds or an `ERROR` summary when it fails after exhausting retries.
-8. Use the closest available level when the ideal semantic level is not supported.
-9. Do not invent logging capabilities or recommend infrastructure/configuration changes as part of this guidance.
-10. Do not infer severity solely from exception types, message text, exit codes, or CI output.
-11. Do not introduce `TRACE` as part of the LogCraft level model.
-12. Explain the reasoning when the available context is insufficient to determine the appropriate level confidently.
+8. When the preferred level is unavailable, select only an available alternative that preserves the event's meaning; never promote informational or diagnostic events to `WARN` or `ERROR` merely because those levels exist.
+9. If no formal logging system exists, evaluate the project's existing output mechanisms such as `puts`, `println`, `System.out`, `console.*`, `stdout`, or `stderr` without requiring a new framework.
+10. Do not invent logging capabilities or recommend infrastructure/configuration changes as part of this guidance.
+11. Do not infer severity solely from exception types, message text, exit codes, or CI output.
+12. Do not introduce `TRACE` as part of the LogCraft level model.
+13. Explain the reasoning when the available context is insufficient to determine the appropriate level confidently.
