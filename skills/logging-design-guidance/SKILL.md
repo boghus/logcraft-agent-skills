@@ -38,7 +38,6 @@ Use the specialized rules after the initial logging decision:
 - Use `runtime-aware-logging` to classify where the event executes.
 - Use `context` when determining whether a justified log has enough useful context to explain why it exists and what happened.
 - Use `log-frequency` when repetition or execution frequency can create excessive output without sufficient information value.
-- Use `log-amplification` for broader amplification concerns when frequency or repeated execution can create excessive output.
 - Use `secret-safe-output` when the event or its context may expose sensitive data.
 - Use `verbose-output` for permanently enabled diagnostic/verbose command output.
 - Use `ci-context-rich-output` and `github-actions-summary` for CI/CD-specific output decisions.
