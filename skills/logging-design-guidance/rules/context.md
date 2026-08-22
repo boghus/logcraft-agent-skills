@@ -9,7 +9,7 @@ Evaluate four dimensions:
 - **Who** — relevant actor, entity, service, process, component, or external system.
 - **What** — the event or operation that occurred and its known result when relevant.
 - **Where** — the component, service, module, process, or system where it occurred.
-- **When** — the timestamp of the event.
+- **When** — the timestamp associated with the log or event, depending on what the logging mechanism provides.
 
 These are dimensions to evaluate, not mandatory fields for every log. Not every event has a meaningful value for every dimension.
 
@@ -77,16 +77,23 @@ When an event belongs to a larger observable operation:
 2. Preserve or use existing identifiers that connect it to the operation or related events.
 3. Do not repeat complete operation context when an existing identifier provides the relationship.
 
+An **entity identifier** identifies the entity involved in the event, such as `user_id` or `order_id`. An **operation or correlation identifier** identifies or connects a particular execution across related events.
+
+Do not assume that an entity identifier provides operation continuity. The same entity can participate in multiple independent operations.
+
 For example:
 
 ```text
-INFO  | operation_id=123 | Synchronization started
-DEBUG | operation_id=123 | step=validation | 500 records validated
-WARN  | operation_id=123 | attempt=2/3 | dependency timeout
-INFO  | operation_id=123 | Synchronization completed | attempts=3
+INFO  | user_id=123 | operation_id=abc | Synchronization started
+DEBUG | user_id=123 | operation_id=abc | Processing records
+ERROR | user_id=123 | operation_id=abc | Synchronization failed
 ```
 
-The event-specific fields explain **what happened here**. The identifier explains **which operation this event belongs to**.
+Here, `user_id` answers **who**, while `operation_id` connects the events to the same execution.
+
+Do not recommend creating an operation or correlation identifier merely because an entity identifier exists. Use an existing identifier when the project already provides one; identifier creation and UUID policy belong to `identifiers-and-uuids` and `traceability`.
+
+The event-specific fields explain **what happened here**. An operation or correlation identifier explains **which execution this event belongs to**.
 
 Context and traceability have different responsibilities:
 
@@ -154,7 +161,19 @@ The detailed definition and policy for sensitive data belongs to the dedicated `
 
 ## Timestamp
 
-A timestamp establishes when the event occurred. Prefer the timestamp provided by the existing logging or runtime mechanism. Do not add a duplicate timestamp solely because the logging framework already provides one.
+A timestamp associated with a log normally tells when the log was emitted or recorded. Do not automatically treat it as the exact time when the described event occurred.
+
+When the logging mechanism provides an emission timestamp, use it as the log timestamp. Do not add a duplicate timestamp solely because the logging framework already provides one.
+
+Consider a separate event timestamp only when the implementation already has meaningful evidence that the event occurred at a different time and that distinction is relevant to understanding, diagnosis, ordering, or correlation.
+
+For example, asynchronous or delayed processing may produce:
+
+```text
+log_timestamp=10:05:08 | event_timestamp=10:05:00 | INFO | Message processed
+```
+
+Do not require `event_timestamp` by default. Do not invent one when the implementation does not provide it.
 
 The exact timestamp format is environment-specific and is outside this rule unless it is necessary to understand or correlate the event.
 
@@ -165,8 +184,11 @@ Do not report insufficient context solely because:
 - all four dimensions are not present;
 - a user is not identified for a system-level event;
 - an entity identifier is absent when no entity is relevant;
+- an entity identifier exists but there is no operation identifier;
+- an operation identifier is absent when the project has no such concept and operation continuity is not required;
 - internal diagnostic details are not present in an operational summary;
 - context is provided through an existing operation or correlation identifier;
+- a logger timestamp is used when no distinct event timestamp is available or relevant;
 - the complete architecture is not visible;
 - a future consequence is not included in the current log.
 
@@ -178,13 +200,15 @@ When reviewing or recommending log context:
 
 1. Identify the event and its observable operation.
 2. Evaluate the relevant **who, what, where, and when** dimensions.
-3. Determine whether the event provides sufficient context to explain why it is logged and what happened.
-4. Distinguish macro operational context from micro diagnostic context.
-5. Use the hybrid approach: event-specific context plus existing identifiers for operation continuity.
-6. Include a known, relevant cause when it can be determined reliably.
-7. Include a known, relevant result when it is already observable.
-8. Never predict a future consequence or invent missing context.
-9. When context is incomplete, identify what can be demonstrated and what materially remains missing.
-10. When useful context is sensitive, omit the sensitive value and suggest an existing safe identifier when one is available.
-11. Do not require every contextual dimension or every available field in every log.
-12. Keep sensitive-data definitions and policy in the dedicated `Sensitive data` guidance.
+3. Distinguish entity identifiers from operation or correlation identifiers; never assume one provides the role of the other.
+4. Determine whether the event provides sufficient context to explain why it is logged and what happened.
+5. Distinguish macro operational context from micro diagnostic context.
+6. Use the hybrid approach: event-specific context plus existing identifiers for operation continuity.
+7. Include a known, relevant cause when it can be determined reliably.
+8. Include a known, relevant result when it is already observable.
+9. Distinguish log emission time from event time when the implementation provides evidence that they differ and the distinction matters.
+10. Never predict a future consequence or invent missing context or timestamps.
+11. When context is incomplete, identify what can be demonstrated and what materially remains missing.
+12. When useful context is sensitive, omit the sensitive value and suggest an existing safe identifier when one is available.
+13. Do not require every contextual dimension or every available field in every log.
+14. Keep sensitive-data definitions and policy in the dedicated `Sensitive data` guidance.
