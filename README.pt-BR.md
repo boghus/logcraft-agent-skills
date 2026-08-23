@@ -31,7 +31,7 @@ São **regras orientadas ao contexto**, não mandatos automáticos. Cada regra d
 - **Evite ruído:** logs de alta frequência podem prejudicar o desempenho e dificultar o diagnóstico.
 - **Observabilidade adequada ao ambiente:** build, aplicação, navegador e CI/CD têm necessidades diferentes.
 
-## Design orientado a contexto
+## Contextos
 
 O LogCraft diferencia, entre outros, estes contextos:
 
@@ -73,6 +73,11 @@ Os fixtures também cobrem output sensível do ponto de vista de segurança. Por
 ## Status do projeto
 
 As regras atuais estão evoluindo por meio de casos reais. O repositório é usado para validar quais recomendações são generalizáveis e quais precisam ser adaptadas a tecnologias específicas.
+
+## Documentação
+
+- [English](README.md)
+- [Español](README.es.md)
 
 ## Contribuindo
 
