@@ -6,9 +6,36 @@ Skills e boas práticas de logging orientadas para produção para agentes de IA
 
 ## O que é o LogCraft?
 
-O LogCraft busca ajudar agentes de IA a tomar decisões melhores sobre logging. Ele não se limita a detectar `console.log`: analisa o contexto de execução, a frequência, a sensibilidade dos dados e o ambiente operacional antes de recomendar mudanças.
+O LogCraft ajuda agentes de IA a tomar decisões melhores sobre logging. Ele não se limita a detectar `console.log`: analisa o contexto de execução, a frequência, a sensibilidade dos dados e o ambiente operacional antes de recomendar mudanças.
 
 O objetivo é produzir logs úteis para diagnosticar problemas em produção sem criar ruído, riscos de segurança ou complexidade desnecessária.
+
+## Modos de uso
+
+A skill `logging-design-guidance` pode ser utilizada em dois modos complementares:
+
+- **`analyze`** — analisa o código e fornece sugestões com base nas regras do LogCraft. Não modifica o código.
+- **`create`** — cria ou modifica o logging aplicando os princípios do LogCraft e, em seguida, executa novamente a análise para validar o resultado.
+
+O modo `create` utiliza um ciclo de validação:
+
+```text
+create
+  ↓
+aplicar regras
+  ↓
+criar/modificar o log
+  ↓
+analyze
+  ↓
+PASS → finalizar
+  ↓
+FAIL/WARN → melhorar
+  ↓
+analyze novamente
+```
+
+O objetivo não é criar um log sempre. Se a análise determinar que o evento não deve ser registrado, `create` pode concluir que **nenhum log deve ser criado**.
 
 ## Regras
 
@@ -23,6 +50,24 @@ Este repositório contém regras de logging orientadas ao contexto para cenário
 
 São **regras orientadas ao contexto**, não mandatos automáticos. Cada regra deve ser avaliada considerando o runtime, o caminho de execução, a sensibilidade dos dados e o objetivo operacional antes de recomendar uma alteração.
 
+## Logging design guidance
+
+O LogCraft também fornece guidance de design para decidir se um log deve existir antes de recomendar como implementá-lo:
+
+- `logging-design-guidance` — determina se um evento tem valor operacional suficiente para justificar um log, considerando runtime, frequência, observabilidade existente e sensibilidade dos dados.
+
+A guidance é intencionalmente baseada em princípios. Ela ajuda o agente de IA a raciocinar sobre a pergunta operacional que um log precisa responder, em vez de prescrever um log para cada caminho do código.
+
+As regras utilizadas por essa guidance incluem:
+
+- `when-to-log` — determina quando um evento tem valor operacional suficiente para justificar um log.
+- `when-not-to-log` — identifica quando um log deve ser explicitamente evitado.
+- `context` — avalia o contexto mínimo e útil que deve acompanhar o evento.
+- `identifiers-and-uuids` — ajuda a escolher identificadores significativos e seguros.
+- `traceability` — avalia a correlação de eventos através dos limites observáveis.
+- `log-levels` — determina o nível semântico apropriado de acordo com o significado operacional do evento.
+- `log-frequency` — avalia a repetição e o risco de amplificação do output.
+
 ## Princípios
 
 - **Contexto antes de quantidade:** um log deve ajudar a entender o que aconteceu e por quê.
@@ -30,8 +75,9 @@ São **regras orientadas ao contexto**, não mandatos automáticos. Cada regra d
 - **Segurança em primeiro lugar:** nunca registre secrets, credenciais, tokens ou informações sensíveis desnecessárias.
 - **Evite ruído:** logs de alta frequência podem prejudicar o desempenho e dificultar o diagnóstico.
 - **Observabilidade adequada ao ambiente:** build, aplicação, navegador e CI/CD têm necessidades diferentes.
+- **Validar depois de criar:** um log gerado deve ser analisado novamente antes de ser considerado concluído.
 
-## Design orientado a contexto
+## Contextos
 
 O LogCraft diferencia, entre outros, estes contextos:
 
