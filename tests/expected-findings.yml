@@ -161,3 +161,63 @@ cases:
       - rule: github-actions-summary
         expected: false
         reason: the deployment exposes concise environment, revision, and result context through GITHUB_STEP_SUMMARY
+
+  - id: transversal-existing-capability
+    fixture: fixtures/transversal-principles/existing-capability.js
+    findings:
+      - rule: transversal-principles
+        severity: medium
+        expected: true
+        reason: an existing request correlation capability should be reused instead of introducing a second mechanism
+
+  - id: transversal-existing-capability-safe
+    fixture: fixtures/transversal-principles/existing-capability-safe.js
+    findings:
+      - rule: transversal-principles
+        expected: false
+        reason: there is no existing correlation mechanism to duplicate
+
+  - id: transversal-unnecessary-mechanism
+    fixture: fixtures/transversal-principles/unnecessary-mechanism.js
+    findings:
+      - rule: transversal-principles
+        severity: medium
+        expected: true
+        reason: an additional observability mechanism is unnecessary when the existing logger and context propagation satisfy the need
+
+  - id: transversal-unnecessary-mechanism-safe
+    fixture: fixtures/transversal-principles/unnecessary-mechanism-safe.js
+    findings:
+      - rule: transversal-principles
+        expected: false
+        reason: the existing logger cannot satisfy the distributed correlation requirement
+
+  - id: transversal-unsupported-capability
+    fixture: fixtures/transversal-principles/unsupported-capability.js
+    findings:
+      - rule: transversal-principles
+        severity: medium
+        expected: true
+        reason: recommendations must respect the logger capabilities actually available in the project
+
+  - id: transversal-unsupported-capability-safe
+    fixture: fixtures/transversal-principles/unsupported-capability-safe.js
+    findings:
+      - rule: transversal-principles
+        expected: false
+        reason: the requested structured-field capability is explicitly supported by the existing logger
+
+  - id: transversal-appropriate-observability
+    fixture: fixtures/transversal-principles/appropriate-observability.js
+    findings:
+      - rule: transversal-principles
+        severity: medium
+        expected: true
+        reason: latency distribution is better represented by a metric than by one log per high-volume item
+
+  - id: transversal-appropriate-observability-safe
+    fixture: fixtures/transversal-principles/appropriate-observability-safe.js
+    findings:
+      - rule: transversal-principles
+        expected: false
+        reason: an operational failure requires diagnostic details that a metric alone would not preserve
