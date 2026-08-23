@@ -5,7 +5,62 @@ description: Decide whether an event is worth logging before adding or changing 
 
 # Logging design guidance
 
-This skill is the decision point for determining whether an application log should exist.
+This skill is the decision point for determining whether an application log should exist and, when requested, for creating a log that follows the LogCraft principles.
+
+## Commands
+
+The skill supports two explicit modes:
+
+### `analyze`
+
+Analyze existing or proposed logging without modifying the code.
+
+Use this mode when the agent needs to determine whether a log is justified, whether an existing log follows the guidance, or what should be improved.
+
+The analysis must:
+
+1. Identify the event and its runtime context.
+2. Evaluate the applicable LogCraft rules.
+3. Report findings with the relevant rule, severity, location or code context when available, problem, and concrete suggestion.
+4. Distinguish between a justified log, a log that needs improvement, and a log that should not exist.
+5. Explain the operational question the log should answer rather than recommending logging for observability in the abstract.
+
+`analyze` is read-only: it must not modify application code.
+
+### `create`
+
+Create or modify application logging using the LogCraft principles, then validate the result by running the same analysis again.
+
+The creation flow is:
+
+```text
+Understand context
+    ↓
+Determine whether a log should exist
+    ↓
+Apply applicable LogCraft rules
+    ↓
+Create or modify the log, or intentionally leave it unlogged
+    ↓
+Analyze the resulting code again
+    ↓
+PASS → finalize
+FAIL/WARN → improve and analyze again
+```
+
+The `create` mode must not assume that every request requires a log. A valid result may be **no log**, when the rules determine that logging would create noise, duplicate existing observability, expose sensitive information, or otherwise provide insufficient operational value.
+
+When a log is created or changed, `create` should apply the same rules used by `analyze` rather than maintaining a separate set of implementation rules.
+
+The validation loop should stop after a bounded number of iterations. Use a maximum of **3 improvement cycles** unless the host agent provides a stricter limit.
+
+At the end, report:
+
+- what logging decision was made;
+- what was created or changed, when applicable;
+- the relevant rules applied;
+- the final validation result;
+- any remaining warning that could not be resolved safely or confidently.
 
 ## Decision flow
 
@@ -54,20 +109,11 @@ A specialized rule may change the recommendation after this initial decision.
 
 ## Agent behavior
 
-When reviewing or modifying code:
+When reviewing or modifying code, prefer the command that matches the requested operation:
 
-1. Identify the event and its runtime context.
-2. Evaluate both logging decision rules.
-3. Evaluate `duration-and-performance` whenever timing may provide operational value, even if no individual log should be emitted.
-4. If logging is justified, apply `context` and recommend the smallest useful amount of safe context.
-5. Apply `identifiers-and-uuids` when an identifier is relevant to the event.
-6. Apply `traceability` when the event belongs to an operation that crosses or may cross observable boundaries.
-7. Apply `log-levels` to evaluate the semantic level of the event using the project's actual logging capabilities.
-8. Apply `log-frequency` when the event can repeat or execute frequently.
-9. If duration is relevant, identify the observable flow, explain the evidence, and recommend the appropriate measurement strategy and granularity rather than imposing an individual log.
-10. For asynchronous flows, distinguish request/enqueue duration from processing duration; do not automatically recommend queue-wait or end-to-end latency.
-11. When individual duration logs are too frequent, noisy, or costly, consider aggregation, sampling, metrics, traces, or another existing timing mechanism.
-12. If logging is not justified, explain what makes it noise and what alternative, if any, would better serve the use case.
-13. Apply specialized rules before finalizing the recommendation.
+- Use `analyze` for review-only requests. Never modify code in this mode.
+- Use `create` when the agent is asked to add or improve logging. Generate the smallest useful implementation, then re-run `analyze` against the result.
+- If `create` produces findings, improve the implementation and analyze again, up to the bounded iteration limit.
+- If the analysis concludes that no log should exist, preserve that decision instead of adding a log merely because the command was `create`.
 
-Do not recommend adding a log just to make code more observable in the abstract. Explain the operational question the observation is intended to answer.
+Do not recommend adding a log just to make code more observable in the abstract. Explain the operational question the log is intended to answer.
