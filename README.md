@@ -10,6 +10,26 @@ LogCraft helps AI agents make better logging decisions. It does not only detect 
 
 The goal is to produce useful logs for diagnosing production problems without creating noise, security risks, or unnecessary complexity.
 
+## What LogCraft is — and is not
+
+LogCraft is an **Agent Skill for logging guidance and generation**. It is designed to be used by an AI coding agent while the agent is understanding, reviewing, or modifying application code.
+
+LogCraft is:
+
+- A collection of reusable logging principles and rules.
+- A reasoning workflow for deciding whether a log is needed, what it should contain, and how it should be validated.
+- A skill that can guide an agent while implementing or reviewing application code.
+- A self-validation workflow where generated logging is analyzed again before it is considered complete.
+
+LogCraft is not:
+
+- A standalone CLI application.
+- A replacement for application logging frameworks such as SLF4J, Logback, Log4j, or a framework's native logger.
+- A CI/CD logging system.
+- A parser or compiler that independently modifies application source code.
+
+`analyze` and `create` are **skill modes used by the AI coding agent**, not executable shell commands. The agent provides the execution context and applies the guidance to the code it is working on.
+
 ## Logging guidance commands
 
 The `logging-design-guidance` skill provides two explicit modes for AI coding agents:
