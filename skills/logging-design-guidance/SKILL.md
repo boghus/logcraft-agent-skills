@@ -5,7 +5,62 @@ description: Decide whether an event is worth logging before adding or changing 
 
 # Logging design guidance
 
-This skill is the decision point for determining whether an application log should exist.
+This skill is the decision point for determining whether an application log should exist and, when requested, for creating a log that follows the LogCraft principles.
+
+## Commands
+
+The skill supports two explicit modes:
+
+### `analyze`
+
+Analyze existing or proposed logging without modifying the code.
+
+Use this mode when the agent needs to determine whether a log is justified, whether an existing log follows the guidance, or what should be improved.
+
+The analysis must:
+
+1. Identify the event and its runtime context.
+2. Evaluate the applicable LogCraft rules.
+3. Report findings with the relevant rule, severity, location or code context when available, problem, and concrete suggestion.
+4. Distinguish between a justified log, a log that needs improvement, and a log that should not exist.
+5. Explain the operational question the log should answer rather than recommending logging for observability in the abstract.
+
+`analyze` is read-only: it must not modify application code.
+
+### `create`
+
+Create or modify application logging using the LogCraft principles, then validate the result by running the same analysis again.
+
+The creation flow is:
+
+```text
+Understand context
+    ↓
+Determine whether a log should exist
+    ↓
+Apply applicable LogCraft rules
+    ↓
+Create or modify the log, or intentionally leave it unlogged
+    ↓
+Analyze the resulting code again
+    ↓
+PASS → finalize
+FAIL/WARN → improve and analyze again
+```
+
+The `create` mode must not assume that every request requires a log. A valid result may be **no log**, when the rules determine that logging would create noise, duplicate existing observability, expose sensitive information, or otherwise provide insufficient operational value.
+
+When a log is created or changed, `create` should apply the same rules used by `analyze` rather than maintaining a separate set of implementation rules.
+
+The validation loop should stop after a bounded number of iterations. Use a maximum of **3 improvement cycles** unless the host agent provides a stricter limit.
+
+At the end, report:
+
+- what logging decision was made;
+- what was created or changed, when applicable;
+- the relevant rules applied;
+- the final validation result;
+- any remaining warning that could not be resolved safely or confidently.
 
 ## Decision flow
 
@@ -54,7 +109,9 @@ A specialized rule may change the recommendation after this initial decision.
 
 ## Agent behavior
 
-When reviewing or modifying code:
+When reviewing or modifying code, prefer the command that matches the requested operation while preserving the complete logging guidance workflow:
+
+### `analyze`
 
 1. Identify the event and its runtime context.
 2. Evaluate both logging decision rules.
@@ -70,4 +127,14 @@ When reviewing or modifying code:
 12. If logging is not justified, explain what makes it noise and what alternative, if any, would better serve the use case.
 13. Apply specialized rules before finalizing the recommendation.
 
-Do not recommend adding a log just to make code more observable in the abstract. Explain the operational question the observation is intended to answer.
+`analyze` is read-only and must not modify application code.
+
+### `create`
+
+Use the same complete analysis sequence above when creating or modifying logging. Generate the smallest useful implementation, then re-run the `analyze` workflow against the result.
+
+- If `create` produces findings, improve the implementation and analyze again, up to the bounded iteration limit.
+- If the analysis concludes that no log should exist, preserve that decision instead of adding a log merely because the mode was `create`.
+- Do not maintain a separate set of implementation rules for `create`; it must reuse the same LogCraft rules and guidance as `analyze`.
+
+Do not recommend adding a log just to make code more observable in the abstract. Explain the operational question the log is intended to answer.
