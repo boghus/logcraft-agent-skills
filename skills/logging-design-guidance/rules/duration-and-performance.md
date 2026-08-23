@@ -156,7 +156,7 @@ Consider not recommending it when:
 
 Not recommending a measurement is not a prohibition. The user may still choose to measure it.
 
-## Avoid false precision
+## False positives to avoid
 
 Do not infer that an operation is a bottleneck merely because it contains an apparently expensive step or many operations.
 
