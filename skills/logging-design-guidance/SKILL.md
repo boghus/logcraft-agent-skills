@@ -12,15 +12,17 @@ This skill is the decision point for determining whether an application log shou
 1. Determine the execution context with `runtime-aware-logging`.
 2. Evaluate `when-to-log` to identify events with meaningful operational value.
 3. Evaluate `when-not-to-log` to identify events that should remain unlogged.
-4. If logging is justified, apply `context` to determine the smallest useful amount of safe context.
-5. Apply `identifiers-and-uuids` when the event needs an identifier, entity identity, operation identity, or correlation context.
-6. Apply `traceability` when related events must remain correlatable across observable components, processes, systems, or SDK boundaries.
-7. Apply `log-levels` to determine the semantic level of an existing or proposed log within the observable operation.
-8. Apply `log-frequency` when the event can execute repeatedly or at high frequency.
-9. Apply `duration-and-performance` when duration information could help understand an operation's temporal behavior, investigate a performance concern, or identify possible bottlenecks or regressions.
+4. Evaluate `duration-and-performance` when duration information could answer an operational question, **even if `when-not-to-log` determines that an individual log should not be emitted**. Duration may be better represented through an aggregate log, sampling, a metric, a trace, or another existing timing mechanism.
+5. If logging is justified, apply `context` to determine the smallest useful amount of safe context.
+6. Apply `identifiers-and-uuids` when the event needs an identifier, entity identity, operation identity, or correlation context.
+7. Apply `traceability` when related events must remain correlatable across observable components, processes, systems, or SDK boundaries.
+8. Apply `log-levels` to determine the semantic level of an existing or proposed log within the observable operation.
+9. Apply `log-frequency` when the event can execute repeatedly or at high frequency.
 10. Apply the specialized LogCraft rules for sensitive output, runtime, and CI/CD context.
 
 The two decision rules are complementary: an event may look important enough to log, but still be better left unlogged because it is duplicated, excessively frequent, temporary, sensitive, or better represented by another observability mechanism.
+
+Duration & Performance is a cross-cutting observability decision: it determines whether duration is worth observing and which measurement strategy best answers the operational question. It does not require the result to be an application log.
 
 ## Rules
 
@@ -31,7 +33,7 @@ The two decision rules are complementary: an event may look important enough to 
 - [`traceability`](rules/traceability.md) — evaluate whether related events remain correlatable across the observable portion of an operation and identify evidence-based breaks in that relationship.
 - [`log-levels`](rules/log-levels.md) — choose DEBUG, INFO, WARN, or ERROR according to operational meaning, operation outcome, available levels, and observable context.
 - [`log-frequency`](rules/log-frequency.md) — evaluate repeated logs according to their level, information value, repetition cause, observable unit, and evidence of runtime amplification.
-- [`duration-and-performance`](rules/duration-and-performance.md) — determine when duration information provides operational value, what part of an operation should be measured, how to handle asynchronous and repeated flows, and when measurement should not be recommended.
+- [`duration-and-performance`](rules/duration-and-performance.md) — determine when duration information provides operational value, which measurement strategy best answers the operational question, what part of an operation should be measured, how to handle asynchronous and repeated flows, and when measurement should not be recommended.
 
 ## Interaction with other LogCraft guidance
 
@@ -40,7 +42,7 @@ Use the specialized rules after the initial logging decision:
 - Use `runtime-aware-logging` to classify where the event executes.
 - Use `context` when determining whether a justified log has enough useful context to explain why it exists and what happened.
 - Use `log-frequency` when repetition or execution frequency can create excessive output without sufficient information value.
-- Use `duration-and-performance` when timing information can answer an operational question about an observable flow. Let it determine measurement granularity, asynchronous phases, repeated/batch alternatives, and measurement cost.
+- Use `duration-and-performance` whenever timing information may answer an operational question, including when an individual log is rejected because of frequency, noise, or cost. Let it determine measurement strategy, granularity, asynchronous phases, repeated/batch alternatives, and measurement cost.
 - Use `secret-safe-output` when the event or its context may expose sensitive data.
 - Use `verbose-output` for permanently enabled diagnostic/verbose command output.
 - Use `ci-context-rich-output` and `github-actions-summary` for CI/CD-specific output decisions.
@@ -56,15 +58,16 @@ When reviewing or modifying code:
 
 1. Identify the event and its runtime context.
 2. Evaluate both logging decision rules.
-3. If logging is justified, apply `context` and recommend the smallest useful amount of safe context.
-4. Apply `identifiers-and-uuids` when an identifier is relevant to the event.
-5. Apply `traceability` when the event belongs to an operation that crosses or may cross observable boundaries.
-6. Apply `log-levels` to evaluate the semantic level of the event using the project's actual logging capabilities.
-7. Apply `log-frequency` when the event can repeat or execute frequently.
-8. Apply `duration-and-performance` when the timing of the operation or one of its relevant stages may provide useful operational information.
-9. If duration is relevant, identify the observable flow, explain the evidence, and recommend the appropriate measurement granularity rather than imposing one.
+3. Evaluate `duration-and-performance` whenever timing may provide operational value, even if no individual log should be emitted.
+4. If logging is justified, apply `context` and recommend the smallest useful amount of safe context.
+5. Apply `identifiers-and-uuids` when an identifier is relevant to the event.
+6. Apply `traceability` when the event belongs to an operation that crosses or may cross observable boundaries.
+7. Apply `log-levels` to evaluate the semantic level of the event using the project's actual logging capabilities.
+8. Apply `log-frequency` when the event can repeat or execute frequently.
+9. If duration is relevant, identify the observable flow, explain the evidence, and recommend the appropriate measurement strategy and granularity rather than imposing an individual log.
 10. For asynchronous flows, distinguish request/enqueue duration from processing duration; do not automatically recommend queue-wait or end-to-end latency.
-11. If logging is not justified, explain what makes it noise and what alternative, if any, would better serve the use case.
-12. Apply specialized rules before finalizing the recommendation.
+11. When individual duration logs are too frequent, noisy, or costly, consider aggregation, sampling, metrics, traces, or another existing timing mechanism.
+12. If logging is not justified, explain what makes it noise and what alternative, if any, would better serve the use case.
+13. Apply specialized rules before finalizing the recommendation.
 
-Do not recommend adding a log just to make code more observable in the abstract. Explain the operational question the log is intended to answer.
+Do not recommend adding a log just to make code more observable in the abstract. Explain the operational question the observation is intended to answer.
