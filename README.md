@@ -10,6 +10,80 @@ LogCraft helps AI agents make better logging decisions. It does not only detect 
 
 The goal is to produce useful logs for diagnosing production problems without creating noise, security risks, or unnecessary complexity.
 
+## What LogCraft is — and is not
+
+LogCraft is an **Agent Skill for logging guidance and generation**. It is designed to be used by an AI coding agent while the agent is understanding, reviewing, or modifying application code.
+
+LogCraft is:
+
+- A collection of reusable logging principles and rules.
+- A reasoning workflow for deciding whether a log is needed, what it should contain, and how it should be validated.
+- A skill that can guide an agent while implementing or reviewing application code.
+- A self-validation workflow where generated logging is analyzed again before it is considered complete.
+
+LogCraft is not:
+
+- A standalone CLI application.
+- A replacement for application logging frameworks such as SLF4J, Logback, Log4j, or a framework's native logger.
+- A CI/CD logging system.
+- A parser or compiler that independently modifies application source code.
+
+`analyze` and `create` are **skill modes used by the AI coding agent**, not executable shell commands. The agent provides the execution context and applies the guidance to the code it is working on.
+
+## Logging guidance commands
+
+The `logging-design-guidance` skill provides two explicit modes for AI coding agents:
+
+### `analyze`
+
+Review existing or proposed logging and provide suggestions **without modifying code**.
+
+Use it when the agent needs to answer questions such as:
+
+- Should this event be logged?
+- Is the current log level appropriate?
+- Does the log contain useful and safe context?
+- Is the identifier or correlation information sufficient?
+- Could this log create unnecessary volume or noise?
+
+The analysis reports the applicable rule, the finding, its severity, and a concrete recommendation when an improvement is needed.
+
+### `create`
+
+Create or improve logging using the LogCraft principles and then validate the result again.
+
+The command follows a closed feedback loop:
+
+```text
+Understand context
+      ↓
+Decide whether a log should exist
+      ↓
+Apply LogCraft rules
+      ↓
+Create or modify the log
+      ↓
+Analyze the result again
+      ↓
+   ┌──┴──┐
+ PASS  FAIL/WARN
+   │       │
+ done   improve
+           │
+           └──→ analyze again
+```
+
+`create` does **not** mean that a log must always be added. If the rules determine that an event should remain unlogged, the correct result is to leave it unlogged and explain why.
+
+The creation flow reuses `analyze` rather than maintaining a separate validation system. Improvements are bounded to a maximum of three cycles by default.
+
+This makes the skill useful both while implementing code and while reviewing an existing implementation:
+
+```text
+analyze → understand what is wrong
+create  → implement the logging decision and validate it
+```
+
 ## Rules
 
 This repository contains context-aware logging rules for common runtime, CI/CD, verbosity, log-volume, and secret-safety scenarios:
@@ -23,6 +97,14 @@ This repository contains context-aware logging rules for common runtime, CI/CD, 
 
 These are **context-aware rules**, not automatic mandates. Each rule should be evaluated against the runtime, execution path, data sensitivity, and operational purpose before recommending a change.
 
+## Logging design guidance
+
+LogCraft also provides design guidance for deciding whether a log should exist before recommending how to implement it:
+
+- `logging-design-guidance` — decide whether an event has enough operational value to justify a log, while considering runtime, frequency, existing observability, and data sensitivity.
+
+The guidance is intentionally principle-based. It should help an AI agent reason about the operational question a log needs to answer instead of prescribing a log for every code path.
+
 ## Principles
 
 - **Context before quantity:** a log should help explain what happened and why.
@@ -30,6 +112,7 @@ These are **context-aware rules**, not automatic mandates. Each rule should be e
 - **Security first:** never log secrets, credentials, tokens, or unnecessary sensitive information.
 - **Avoid noise:** high-frequency logs can degrade performance and make diagnosis harder.
 - **Observability appropriate to the environment:** build, application, browser, and CI/CD have different needs.
+- **Validate after creation:** generated logging should be analyzed again before it is considered complete.
 
 ## Contexts
 
@@ -70,9 +153,11 @@ The contract tests keep rule behavior reproducible without coupling the project 
 
 The fixtures also cover security-sensitive output. For example, an explicit secret expansion such as `$FTP_PASSWORD`, `${FTP_PASSWORD}`, or `process.env.FTP_PASSWORD` reaching a direct output sink is treated independently from credential-flow analysis and can produce a high-severity finding.
 
+Tests for the `analyze`/`create` feedback loop will be added as the logging design rules reach their final state.
+
 ## Project status
 
-The current rules are evolving through real-world cases. The repository is used to validate which recommendations are generalizable and which need to be adapted to specific technologies.
+The current rules and guidance are evolving through real-world cases. The repository is used to validate which recommendations are generalizable and which need to be adapted to specific technologies.
 
 ## Documentation
 
@@ -88,6 +173,8 @@ New rules should explain:
 3. the expected behavior;
 4. relevant false positives;
 5. the technologies or runtimes where they apply.
+
+Design guidance should explain the decision criteria, useful exceptions, and relevant context rather than turning contextual recommendations into universal mandates.
 
 Rules should avoid universal recommendations when technical context changes their validity.
 
