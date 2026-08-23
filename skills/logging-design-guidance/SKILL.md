@@ -109,11 +109,32 @@ A specialized rule may change the recommendation after this initial decision.
 
 ## Agent behavior
 
-When reviewing or modifying code, prefer the command that matches the requested operation:
+When reviewing or modifying code, prefer the command that matches the requested operation while preserving the complete logging guidance workflow:
 
-- Use `analyze` for review-only requests. Never modify code in this mode.
-- Use `create` when the agent is asked to add or improve logging. Generate the smallest useful implementation, then re-run `analyze` against the result.
+### `analyze`
+
+1. Identify the event and its runtime context.
+2. Evaluate both logging decision rules.
+3. Evaluate `duration-and-performance` whenever timing may provide operational value, even if no individual log should be emitted.
+4. If logging is justified, apply `context` and recommend the smallest useful amount of safe context.
+5. Apply `identifiers-and-uuids` when an identifier is relevant to the event.
+6. Apply `traceability` when the event belongs to an operation that crosses or may cross observable boundaries.
+7. Apply `log-levels` to evaluate the semantic level of the event using the project's actual logging capabilities.
+8. Apply `log-frequency` when the event can repeat or execute frequently.
+9. If duration is relevant, identify the observable flow, explain the evidence, and recommend the appropriate measurement strategy and granularity rather than imposing an individual log.
+10. For asynchronous flows, distinguish request/enqueue duration from processing duration; do not automatically recommend queue-wait or end-to-end latency.
+11. When individual duration logs are too frequent, noisy, or costly, consider aggregation, sampling, metrics, traces, or another existing timing mechanism.
+12. If logging is not justified, explain what makes it noise and what alternative, if any, would better serve the use case.
+13. Apply specialized rules before finalizing the recommendation.
+
+`analyze` is read-only and must not modify application code.
+
+### `create`
+
+Use the same complete analysis sequence above when creating or modifying logging. Generate the smallest useful implementation, then re-run the `analyze` workflow against the result.
+
 - If `create` produces findings, improve the implementation and analyze again, up to the bounded iteration limit.
-- If the analysis concludes that no log should exist, preserve that decision instead of adding a log merely because the command was `create`.
+- If the analysis concludes that no log should exist, preserve that decision instead of adding a log merely because the mode was `create`.
+- Do not maintain a separate set of implementation rules for `create`; it must reuse the same LogCraft rules and guidance as `analyze`.
 
 Do not recommend adding a log just to make code more observable in the abstract. Explain the operational question the log is intended to answer.
