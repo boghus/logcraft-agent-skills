@@ -23,7 +23,7 @@ First determine the execution context with `runtime-aware-logging`. Then evaluat
    - Consider an event a duplicate only when the alternative mechanism answers the same operational question with sufficient diagnostic context.
    - A metric may confirm that something happened while a log preserves identifiers, reason, outcome, or other context needed to diagnose it.
 5. **How often can it happen?**
-   - Consider frequency and execution paths before adding the log. High-frequency events may require sampling, aggregation, a metric, or no log at all. Use `log-amplification` when repeated execution can multiply output.
+   - Consider frequency and execution paths before adding the log. High-frequency events may require sampling, aggregation, a metric, or no log at all. Use `log-frequency` when repeated execution can create excessive output without sufficient information value.
 6. **Does it contain information that should not be logged?**
    - Consider secrets, credentials, tokens, personal data, financial information, full payloads, and other sensitive values. Use `secret-safe-output` when evaluating output exposure.
 
