@@ -35,24 +35,27 @@ O LogCraft não é:
 A skill `logging-design-guidance` pode ser utilizada em dois modos complementares:
 
 - **`analyze`** — analisa o código e fornece sugestões com base nas regras do LogCraft. Não modifica o código.
-- **`create`** — cria ou modifica o logging aplicando os princípios do LogCraft e, em seguida, executa novamente a análise para validar o resultado.
+- **`create`** — cria ou melhora o logging aplicando os princípios do LogCraft e, em seguida, executa novamente a análise para validar o resultado.
 
 O modo `create` utiliza um ciclo de validação:
 
 ```text
-create
+Entender o contexto
   ↓
-aplicar regras
+Decidir se um log deve existir
   ↓
-criar/modificar o log
+Aplicar as regras do LogCraft
   ↓
-analyze
+Criar ou modificar o log
   ↓
-PASS → finalizar
+Analisar novamente o resultado
   ↓
-FAIL/WARN → melhorar
-  ↓
-analyze novamente
+   ┌──┴──┐
+ PASS  FAIL/WARN
+   │       │
+finalizar melhorar
+           │
+           └──→ analisar novamente
 ```
 
 O objetivo não é criar um log sempre. Se a análise determinar que o evento não deve ser registrado, `create` pode concluir que **nenhum log deve ser criado**.
