@@ -10,6 +10,60 @@ LogCraft helps AI agents make better logging decisions. It does not only detect 
 
 The goal is to produce useful logs for diagnosing production problems without creating noise, security risks, or unnecessary complexity.
 
+## Logging guidance commands
+
+The `logging-design-guidance` skill provides two explicit modes for AI coding agents:
+
+### `analyze`
+
+Review existing or proposed logging and provide suggestions **without modifying code**.
+
+Use it when the agent needs to answer questions such as:
+
+- Should this event be logged?
+- Is the current log level appropriate?
+- Does the log contain useful and safe context?
+- Is the identifier or correlation information sufficient?
+- Could this log create unnecessary volume or noise?
+
+The analysis reports the applicable rule, the finding, its severity, and a concrete recommendation when an improvement is needed.
+
+### `create`
+
+Create or improve logging using the LogCraft principles and then validate the result again.
+
+The command follows a closed feedback loop:
+
+```text
+Understand context
+      ↓
+Decide whether a log should exist
+      ↓
+Apply LogCraft rules
+      ↓
+Create or modify the log
+      ↓
+Analyze the result again
+      ↓
+   ┌──┴──┐
+ PASS  FAIL/WARN
+   │       │
+ done   improve
+           │
+           └──→ analyze again
+```
+
+`create` does **not** mean that a log must always be added. If the rules determine that an event should remain unlogged, the correct result is to leave it unlogged and explain why.
+
+The creation flow reuses `analyze` rather than maintaining a separate validation system. Improvements are bounded to a maximum of three cycles by default.
+
+This makes the skill useful both while implementing code and while reviewing an existing implementation:
+
+```text
+analyze → understand what is wrong
+create  → implement the logging decision and validate it
+```
+
 ## Rules
 
 This repository contains context-aware logging rules for common runtime, CI/CD, verbosity, log-volume, and secret-safety scenarios:
@@ -38,6 +92,7 @@ The guidance is intentionally principle-based. It should help an AI agent reason
 - **Security first:** never log secrets, credentials, tokens, or unnecessary sensitive information.
 - **Avoid noise:** high-frequency logs can degrade performance and make diagnosis harder.
 - **Observability appropriate to the environment:** build, application, browser, and CI/CD have different needs.
+- **Validate after creation:** generated logging should be analyzed again before it is considered complete.
 
 ## Contexts
 
@@ -77,6 +132,8 @@ The runner performs two validation stages:
 The contract tests keep rule behavior reproducible without coupling the project to a specific AI provider or parser.
 
 The fixtures also cover security-sensitive output. For example, an explicit secret expansion such as `$FTP_PASSWORD`, `${FTP_PASSWORD}`, or `process.env.FTP_PASSWORD` reaching a direct output sink is treated independently from credential-flow analysis and can produce a high-severity finding.
+
+Tests for the `analyze`/`create` feedback loop will be added as the logging design rules reach their final state.
 
 ## Project status
 
