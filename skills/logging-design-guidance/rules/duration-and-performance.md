@@ -8,6 +8,8 @@ This rule is technology-independent. Evaluate the behavior and observability nee
 
 Do not assume that a duration is slow, fast, acceptable, or problematic from the code alone. The acceptable duration is context-specific and belongs to the user or team responsible for the system.
 
+Duration measurement should provide actionable operational value relative to its cost. For operations with negligible duration variability or measurement overhead relative to their value, duration logging may add noise without providing useful insight.
+
 ## User intent comes first
 
 Before recommending duration instrumentation, determine what the user wants to achieve with the measurement.
