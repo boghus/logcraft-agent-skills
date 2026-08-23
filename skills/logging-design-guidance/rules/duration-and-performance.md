@@ -96,6 +96,10 @@ Do not combine these phases into one duration when doing so would hide the disti
 
 The rule is independent of the queue, broker, framework, or transport technology used to implement the asynchronous flow.
 
+The time spent waiting between enqueue and processing, or an end-to-end duration from request to completion, is **not a default measurement for this rule**. Those values can be dominated by backlog, concurrency, scheduling, or processing capacity rather than the duration of the operation itself. For example, if one worker processes 1,000 queued jobs at three seconds each, later jobs can have very large elapsed latency even though each processing execution still takes three seconds.
+
+Only consider queue-wait or end-to-end measurements when the user explicitly needs to investigate that latency or the code provides a clear operational reason for it. Keep such measurements separate from request/enqueue and processing durations rather than combining them.
+
 ## Repeated and batch operations
 
 When an operation executes repeatedly, especially inside a high-frequency loop or batch, consider the volume of resulting log output before recommending per-execution duration logging.
@@ -221,7 +225,7 @@ When reviewing or recommending duration and performance logging:
 5. Reuse existing project mechanisms when possible.
 6. Recommend the operation, stage, or phases to measure and explain the evidence supporting the recommendation.
 7. Offer granularity options when the operation contains multiple meaningful stages and let the user choose.
-8. For asynchronous flows, distinguish request/enqueue duration from processing duration.
+8. For asynchronous flows, distinguish request/enqueue duration from processing duration; do not default to queue-wait or end-to-end latency measurements.
 9. For repeated or high-frequency operations, evaluate output volume and offer batch, sampling, metrics, or individual measurement alternatives when appropriate.
 10. Represent duration numerically with an explicit, consistent unit.
 11. Apply the rule regardless of whether the operation succeeds, warns, or fails; do not select log level here.
