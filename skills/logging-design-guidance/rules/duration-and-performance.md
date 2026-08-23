@@ -8,15 +8,15 @@ This rule is technology-independent. Evaluate the behavior and observability nee
 
 Do not assume that a duration is slow, fast, acceptable, or problematic from the code alone. The acceptable duration is context-specific and belongs to the user or team responsible for the system.
 
-Duration measurement should provide actionable operational value relative to its cost. For operations with negligible duration variability or measurement overhead relative to their value, duration logging may add noise without providing useful insight.
+Duration measurement should provide actionable operational value relative to its cost. For operations with negligible duration variability or measurement overhead relative to their value, duration measurement may add noise without providing useful insight.
 
 ## User intent comes first
 
-Before recommending duration instrumentation, determine what the user wants to achieve with the measurement.
+Before recommending a duration measurement strategy, determine what the user wants to achieve by observing the operation's duration.
 
 Possible goals include monitoring an operation, investigating possible bottlenecks, understanding a specific operation or step, measuring repeated or batch processing, or another explicit operational purpose.
 
-When the purpose is unclear, ask the user what they want to learn from the duration information before making a specific instrumentation recommendation.
+When the purpose is unclear, ask the user what they want to learn from the duration information before making a specific measurement recommendation.
 
 ## Discover the observable flow
 
@@ -26,13 +26,23 @@ Consider the major flows observable in the available code rather than isolated m
 
 Infer the logical boundaries from the implementation and explain the evidence used for the recommendation.
 
-## Measure when it provides operational value
+## Choose a measurement strategy
 
-When the user explicitly chooses to monitor an operation, recommend capturing its duration as part of that monitoring information.
+When duration information has operational value, recommend the measurement strategy that best matches the user's objective, execution flow, frequency, existing observability mechanisms, and measurement cost.
 
-When monitoring has not been explicitly requested, duration instrumentation may still be recommended when the code provides evidence that the measurement could answer an operational question. The recommendation is optional and must explain why it could be useful.
+Possible strategies include:
 
-Do not reduce the analysis to a rigid list of patterns. Explain the evidence found in the code and the operational question the measurement would answer.
+- an individual log;
+- an aggregated or batch log;
+- sampled logging;
+- a metric;
+- a trace or another existing timing mechanism.
+
+These are alternatives for obtaining useful duration information, not mandatory technologies. This rule does not attempt to design a complete metrics or tracing strategy; it only considers them when they are a more appropriate way to obtain the duration information than individual logging.
+
+When the user explicitly chooses to monitor duration, recommend an appropriate strategy rather than assuming that a log is the correct mechanism.
+
+When duration has no clear operational value, do not recommend measurement merely because timing can be technically captured.
 
 ## Recommend, do not impose
 
@@ -41,7 +51,7 @@ Every recommendation should explain:
 - **what** should be measured;
 - **why** it is useful;
 - **what evidence** supports the recommendation;
-- **which granularity options** make sense;
+- **which measurement strategies and granularity options** make sense;
 - **what cost or overhead** may be introduced;
 - **what alternatives** are appropriate when individual logging is too expensive or noisy.
 
@@ -99,7 +109,7 @@ Explain the trade-off and recommend an option based on the user's objective, but
 
 Before recommending new duration instrumentation, check whether equivalent timing information already exists through logging, metrics, tracing, APM, CI/CD, or another observability mechanism.
 
-If equivalent information exists, tell the user what was found and let the user decide whether additional logging is useful.
+If equivalent information exists, tell the user what was found and let the user decide whether additional logging or measurement is useful.
 
 When adding instrumentation is appropriate, reuse the project's existing timing or measurement mechanisms whenever possible.
 
@@ -113,7 +123,7 @@ Adapt recommendations to the inferred size and complexity of the project. Expose
 
 ## Representation
 
-Represent duration as a numeric value with an explicit and consistent unit.
+When duration is logged, represent it as a numeric value with an explicit and consistent unit.
 
 Do not require one universal unit across projects; choose a unit appropriate to the project's conventions and the user's needs.
 
@@ -129,21 +139,22 @@ Do not use free-form text as the only representation when the duration is intend
 
 Duration guidance applies regardless of the outcome or log level of the operation.
 
-Do not make duration instrumentation conditional on success, WARN, or ERROR. The appropriate log level remains the responsibility of `log-levels`.
+Do not make duration measurement conditional on success, WARN, or ERROR. The appropriate log level remains the responsibility of `log-levels`.
 
 ## When not to recommend duration
 
-Do not recommend duration instrumentation when there is no clear operational value.
+Do not recommend duration measurement when there is no clear operational value.
 
 Consider not recommending it when:
 
 - the operation is trivial and there is no identified monitoring or diagnostic need;
-- equivalent timing information already exists and additional instrumentation adds no clear value;
+- equivalent timing information already exists and additional measurement adds no clear value;
 - the measurement would create disproportionate output or runtime overhead;
 - introducing it would add significant complexity without corresponding observability benefit;
-- the code provides no evidence that timing information would answer a meaningful operational question.
+- the code provides no evidence that timing information would answer a meaningful operational question;
+- duration variability or the expected insight is negligible relative to the cost of measuring it.
 
-Not recommending a measurement is not a prohibition. The user may still choose to instrument it.
+Not recommending a measurement is not a prohibition. The user may still choose to measure it.
 
 ## Avoid false precision
 
@@ -163,21 +174,22 @@ unless runtime evidence supports that conclusion.
 
 ## Agent behavior
 
-When reviewing or recommending duration and performance logging:
+When reviewing or recommending duration and performance observability:
 
 1. Identify the observable operation and its logical execution boundaries.
 2. Determine the user's monitoring objective; ask when it is unclear.
 3. Inspect the relevant execution flows and identify where duration information could answer the operational question.
 4. Check for existing timing or observability mechanisms.
 5. Reuse existing project mechanisms when possible.
-6. Recommend what to measure and explain the evidence.
-7. Offer granularity options and let the user choose.
-8. For asynchronous flows, distinguish request/enqueue duration from processing duration; do not default to queue-wait or end-to-end latency.
-9. For repeated or high-frequency operations, evaluate output volume and offer batch, sampling, metrics, or individual measurement alternatives when appropriate.
-10. Represent duration numerically with an explicit, consistent unit.
-11. Apply the rule regardless of whether the operation succeeds, warns, or fails; do not select log level here.
-12. Consider runtime overhead, log volume, implementation complexity, and project context.
-13. Recommend measurement when there is evidence of operational value, but do not require it solely from static code analysis.
-14. Do not infer runtime thresholds, bottlenecks, or acceptable durations without evidence.
-15. When measurement is not justified, explain why.
-16. Keep cross-cutting concerns such as duplicate logging, identifiers, traceability, context, log levels, and structured logging in their dedicated rules.
+6. Determine whether duration measurement has operational value relative to its cost.
+7. Recommend an appropriate measurement strategy and explain the evidence.
+8. Offer granularity options and let the user choose.
+9. For asynchronous flows, distinguish request/enqueue duration from processing duration; do not default to queue-wait or end-to-end latency.
+10. For repeated or high-frequency operations, evaluate output volume and offer batch, sampling, metrics, or individual measurement alternatives when appropriate.
+11. When duration is logged, represent it numerically with an explicit, consistent unit.
+12. Apply the rule regardless of whether the operation succeeds, warns, or fails; do not select log level here.
+13. Consider runtime overhead, log volume, implementation complexity, and project context.
+14. Recommend measurement when there is evidence of operational value, but do not require logging solely because duration can be captured.
+15. Do not infer runtime thresholds, bottlenecks, or acceptable durations without evidence.
+16. When measurement is not justified, explain why.
+17. Keep cross-cutting concerns such as duplicate logging, identifiers, traceability, context, log levels, and structured logging in their dedicated rules.
