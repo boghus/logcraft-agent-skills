@@ -66,6 +66,18 @@ function analyzeCiContextRichOutput() {
   result(workflow && operationalCommand && !hasSummary, workflow && operationalCommand && !hasSummary ? 'medium' : undefined);
 }
 
+function analyzeLogFrequency() {
+  const repeatedInfo = /for\s*\([^)]*\)\s*\{[\s\S]*console\.info\(\s*['"][^'"]+['"]\s*\)/i.test(source);
+  const repeatedDebugWithContext = /for\s*\([^)]*\)\s*\{[\s\S]*console\.debug\([\s\S]*\b(?:id|name|key)\b/i.test(source);
+  result(repeatedInfo && !repeatedDebugWithContext, repeatedInfo && !repeatedDebugWithContext ? 'medium' : undefined);
+}
+
+function analyzeDurationAndPerformance() {
+  const unqualifiedDuration = /duration\s*[:=]\s*(?:\$\{|[^,}\n]+)(?!\s*(?:ms|millis(?:econd)?s?|s|sec(?:ond)?s?))\b/i.test(source);
+  const explicitUnit = /duration(?:Ms|Seconds?|Millis(?:econd)?s?)\b/i.test(source);
+  result(unqualifiedDuration && !explicitUnit, unqualifiedDuration && !explicitUnit ? 'medium' : undefined);
+}
+
 const transversalPrinciples = [
   'existing-capability',
   'unnecessary-mechanism',
@@ -110,6 +122,12 @@ switch (rule) {
     break;
   case 'ci-context-rich-output':
     analyzeCiContextRichOutput();
+    break;
+  case 'log-frequency':
+    analyzeLogFrequency();
+    break;
+  case 'duration-and-performance':
+    analyzeDurationAndPerformance();
     break;
   case 'transversal-principles':
     analyzeTransversalPrinciples();
