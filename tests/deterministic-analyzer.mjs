@@ -66,14 +66,30 @@ function analyzeCiContextRichOutput() {
   result(workflow && operationalCommand && !hasSummary, workflow && operationalCommand && !hasSummary ? 'medium' : undefined);
 }
 
+const transversalPrinciples = [
+  'existing-capability',
+  'unnecessary-mechanism',
+  'unsupported-capability',
+  'appropriate-observability'
+];
+
 function analyzeTransversalPrinciples() {
-  const existingCapability = /LOGCRAFT_TRANSVERSAL:\s*existing-capability\b/i.test(source);
-  const unnecessaryMechanism = /LOGCRAFT_TRANSVERSAL:\s*unnecessary-mechanism\b/i.test(source);
-  const unsupportedCapability = /LOGCRAFT_TRANSVERSAL:\s*unsupported-capability\b/i.test(source);
-  const appropriateObservability = /LOGCRAFT_TRANSVERSAL:\s*appropriate-observability\b/i.test(source);
-  const safeCase = /LOGCRAFT_TRANSVERSAL:\s*(?:existing-capability-safe|unnecessary-mechanism-safe|unsupported-capability-safe|appropriate-observability-safe)\b/i.test(source);
-  const finding = !safeCase && (existingCapability || unnecessaryMechanism || unsupportedCapability || appropriateObservability);
-  result(finding, finding ? 'medium' : undefined);
+  for (const principle of transversalPrinciples) {
+    const marker = new RegExp(`LOGCRAFT_TRANSVERSAL:\\s*${principle}\\b`, 'i');
+    const safeMarker = new RegExp(`LOGCRAFT_TRANSVERSAL:\\s*${principle}-safe\\b`, 'i');
+
+    if (safeMarker.test(source)) {
+      result(false);
+      return;
+    }
+
+    if (marker.test(source)) {
+      result(true, 'medium');
+      return;
+    }
+  }
+
+  result(false);
 }
 
 switch (rule) {
