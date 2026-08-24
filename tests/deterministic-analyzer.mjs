@@ -70,35 +70,25 @@ function extractForBlocks(input) {
   const blocks = [];
   const loopStart = /for\s*\([^)]*\)\s*\{/g;
   let match;
-
   while ((match = loopStart.exec(input)) !== null) {
     let depth = 1;
     let index = match.index + match[0].length;
     let quote = null;
     let escaped = false;
-
     for (; index < input.length && depth > 0; index += 1) {
       const character = input[index];
-
       if (quote) {
         if (escaped) escaped = false;
         else if (character === '\\') escaped = true;
         else if (character === quote) quote = null;
         continue;
       }
-
-      if (character === '"' || character === "'" || character === '`') {
-        quote = character;
-      } else if (character === '{') {
-        depth += 1;
-      } else if (character === '}') {
-        depth -= 1;
-      }
+      if (character === '"' || character === "'" || character === '`') quote = character;
+      else if (character === '{') depth += 1;
+      else if (character === '}') depth -= 1;
     }
-
     if (depth === 0) blocks.push(input.slice(match.index, index));
   }
-
   return blocks;
 }
 
@@ -107,80 +97,112 @@ function hasEntityIdentifier(argumentsSource) {
 }
 
 function analyzeLogFrequency() {
-  const repeatedInfo = extractForBlocks(source).some((block) =>
-    /console\.info\(\s*['"][^'"]+['"]\s*\)/i.test(block)
-  );
-  const repeatedDebugWithContext = extractForBlocks(source).some((block) => {
-    const calls = block.match(/console\.debug\(([^)]*)\)/gis) ?? [];
-    return calls.some((call) => hasEntityIdentifier(call));
-  });
+  const blocks = extractForBlocks(source);
+  const repeatedInfo = blocks.some((block) => /console\.info\(\s*['"][^'"]+['"]\s*\)/i.test(block));
+  const repeatedDebugWithContext = blocks.some((block) => extractCalls(block, /console\.debug/gi).some((call) => hasEntityIdentifier(call)));
   result(repeatedInfo && !repeatedDebugWithContext, repeatedInfo && !repeatedDebugWithContext ? 'medium' : undefined);
 }
 
 function analyzeDurationAndPerformance() {
   const durationPattern = /duration\s*[:=]\s*(\$\{[^}]+\}|[^,}\n]+)/gi;
   const occurrences = [...source.matchAll(durationPattern)];
-  const hasUnqualifiedDuration = occurrences.some((match) => {
-    const value = match[1].trim();
-    return !/(?:ms|millis(?:econd)?s?|s|sec(?:ond)?s?)\s*$/i.test(value);
-  });
+  const hasUnqualifiedDuration = occurrences.some((match) => !/(?:ms|millis(?:econd)?s?|s|sec(?:ond)?s?)\s*$/i.test(match[1].trim()));
   result(hasUnqualifiedDuration, hasUnqualifiedDuration ? 'medium' : undefined);
 }
 
-const transversalPrinciples = [
-  'existing-capability',
-  'unnecessary-mechanism',
-  'unsupported-capability',
-  'appropriate-observability'
-];
+function extractCalls(input, headerPattern) {
+  const calls = [];
+  const header = new RegExp(headerPattern.source, headerPattern.flags.includes('g') ? headerPattern.flags : headerPattern.flags + 'g');
+  let match;
+  while ((match = header.exec(input)) !== null) {
+    let index = match.index + match[0].length;
+    if (input[index] !== '(') continue;
+    const start = index;
+    let depth = 1;
+    let quote = null;
+    let escaped = false;
+    index += 1;
+    for (; index < input.length && depth > 0; index += 1) {
+      const character = input[index];
+      if (quote) {
+        if (escaped) escaped = false;
+        else if (character === '\\') escaped = true;
+        else if (character === quote) quote = null;
+        continue;
+      }
+      if (character === '"' || character === "'" || character === '`') quote = character;
+      else if (character === '(') depth += 1;
+      else if (character === ')') depth -= 1;
+    }
+    if (depth === 0) calls.push(input.slice(start + 1, index - 1));
+  }
+  return calls;
+}
+
+function loggerCalls() {
+  return extractCalls(source, /logger\.(info|warn|error|debug)/gi);
+}
+
+// Prefixes (synchroniz, migrat, authoriz, deploy) match multiple inflections:
+// synchronize/synchronization, migrate/migration, authorize/authorization, deploy/deployed/deployment.
+function hasMeaningfulLog() {
+  return loggerCalls().some((log) => /(?:processed|completed|failed|recovered|synchroniz|deployed|migration|authorization|outcome)/i.test(log));
+}
+
+function hasMeaningfulOperation() {
+  return /\b(?:paymentService\.process|externalService\.sync|(?:deploy|migrat|authoriz|synchroniz)[A-Za-z]*)\s*\(/i.test(source);
+}
+
+function hasRoutineLog() {
+  return loggerCalls().some((log) => /(?:entering|object received|processing)\s+\w+/i.test(log));
+}
+
+function analyzeWhenToLog() {
+  const meaningfulOperationWithoutLog = hasMeaningfulOperation() && !hasMeaningfulLog();
+  result(meaningfulOperationWithoutLog, meaningfulOperationWithoutLog ? 'medium' : undefined);
+}
+
+function analyzeWhenNotToLog() {
+  const routineLog = hasRoutineLog();
+  result(routineLog, routineLog ? 'medium' : undefined);
+}
+
+function analyzeContext() {
+  const calls = loggerCalls();
+  const hasInsufficientContext = calls.some((log) => {
+    const hasOutcome = /\b(outcome|result|reason|status)\b/i.test(log);
+    const hasRelevantIdentifier = /\b(?:userId|user_id|orderId|order_id|paymentId|payment_id)\b/i.test(log);
+    const hasOperation = /\b(?:operationId|operation_id|correlationId|correlation_id|requestId|request_id)\b/i.test(log);
+    return !(hasOutcome && (hasRelevantIdentifier || hasOperation));
+  });
+  result(hasInsufficientContext, hasInsufficientContext ? 'medium' : undefined);
+}
+
+const transversalPrinciples = ['existing-capability', 'unnecessary-mechanism', 'unsupported-capability', 'appropriate-observability'];
 
 function analyzeTransversalPrinciples() {
   for (const principle of transversalPrinciples) {
     const marker = new RegExp(`LOGCRAFT_TRANSVERSAL:\\s*${principle}\\b`, 'i');
     const safeMarker = new RegExp(`LOGCRAFT_TRANSVERSAL:\\s*${principle}-safe\\b`, 'i');
-
-    if (safeMarker.test(source)) {
-      result(false);
-      return;
-    }
-
-    if (marker.test(source)) {
-      result(true, 'medium');
-      return;
-    }
+    if (safeMarker.test(source)) { result(false); return; }
+    if (marker.test(source)) { result(true, 'medium'); return; }
   }
-
   result(false);
 }
 
 switch (rule) {
-  case 'runtime-aware-logging':
-    analyzeRuntimeAware();
-    break;
-  case 'log-amplification':
-    analyzeLogAmplification();
-    break;
-  case 'verbose-output':
-    analyzeVerboseOutput();
-    break;
-  case 'secret-safe-output':
-    analyzeSecretSafeOutput();
-    break;
-  case 'github-actions-summary':
-    analyzeGithubActionsSummary();
-    break;
-  case 'ci-context-rich-output':
-    analyzeCiContextRichOutput();
-    break;
-  case 'log-frequency':
-    analyzeLogFrequency();
-    break;
-  case 'duration-and-performance':
-    analyzeDurationAndPerformance();
-    break;
-  case 'transversal-principles':
-    analyzeTransversalPrinciples();
-    break;
+  case 'runtime-aware-logging': analyzeRuntimeAware(); break;
+  case 'log-amplification': analyzeLogAmplification(); break;
+  case 'verbose-output': analyzeVerboseOutput(); break;
+  case 'secret-safe-output': analyzeSecretSafeOutput(); break;
+  case 'github-actions-summary': analyzeGithubActionsSummary(); break;
+  case 'ci-context-rich-output': analyzeCiContextRichOutput(); break;
+  case 'log-frequency': analyzeLogFrequency(); break;
+  case 'duration-and-performance': analyzeDurationAndPerformance(); break;
+  case 'when-to-log': analyzeWhenToLog(); break;
+  case 'when-not-to-log': analyzeWhenNotToLog(); break;
+  case 'context': analyzeContext(); break;
+  case 'transversal-principles': analyzeTransversalPrinciples(); break;
   default:
     console.error(`Unsupported rule: ${rule}`);
     process.exit(2);
