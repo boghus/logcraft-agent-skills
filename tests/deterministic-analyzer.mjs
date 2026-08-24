@@ -66,6 +66,32 @@ function analyzeCiContextRichOutput() {
   result(workflow && operationalCommand && !hasSummary, workflow && operationalCommand && !hasSummary ? 'medium' : undefined);
 }
 
+const transversalPrinciples = [
+  'existing-capability',
+  'unnecessary-mechanism',
+  'unsupported-capability',
+  'appropriate-observability'
+];
+
+function analyzeTransversalPrinciples() {
+  for (const principle of transversalPrinciples) {
+    const marker = new RegExp(`LOGCRAFT_TRANSVERSAL:\\s*${principle}\\b`, 'i');
+    const safeMarker = new RegExp(`LOGCRAFT_TRANSVERSAL:\\s*${principle}-safe\\b`, 'i');
+
+    if (safeMarker.test(source)) {
+      result(false);
+      return;
+    }
+
+    if (marker.test(source)) {
+      result(true, 'medium');
+      return;
+    }
+  }
+
+  result(false);
+}
+
 switch (rule) {
   case 'runtime-aware-logging':
     analyzeRuntimeAware();
@@ -84,6 +110,9 @@ switch (rule) {
     break;
   case 'ci-context-rich-output':
     analyzeCiContextRichOutput();
+    break;
+  case 'transversal-principles':
+    analyzeTransversalPrinciples();
     break;
   default:
     console.error(`Unsupported rule: ${rule}`);
