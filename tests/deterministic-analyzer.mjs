@@ -66,6 +66,67 @@ function analyzeCiContextRichOutput() {
   result(workflow && operationalCommand && !hasSummary, workflow && operationalCommand && !hasSummary ? 'medium' : undefined);
 }
 
+function extractForBlocks(input) {
+  const blocks = [];
+  const loopStart = /for\s*\([^)]*\)\s*\{/g;
+  let match;
+
+  while ((match = loopStart.exec(input)) !== null) {
+    let depth = 1;
+    let index = match.index + match[0].length;
+    let quote = null;
+    let escaped = false;
+
+    for (; index < input.length && depth > 0; index += 1) {
+      const character = input[index];
+
+      if (quote) {
+        if (escaped) escaped = false;
+        else if (character === '\\') escaped = true;
+        else if (character === quote) quote = null;
+        continue;
+      }
+
+      if (character === '"' || character === "'" || character === '`') {
+        quote = character;
+      } else if (character === '{') {
+        depth += 1;
+      } else if (character === '}') {
+        depth -= 1;
+      }
+    }
+
+    if (depth === 0) blocks.push(input.slice(match.index, index));
+  }
+
+  return blocks;
+}
+
+function hasEntityIdentifier(argumentsSource) {
+  return /(?:\b(?:id|uuid|key|name)\b\s*[:=]\s*[^,)}]+|\b(?:employee|user|record|item)\.(?:id|uuid|key|name)\b)/i.test(argumentsSource);
+}
+
+function analyzeLogFrequency() {
+  const repeatedInfo = extractForBlocks(source).some((block) =>
+    /console\.info\(\s*['"][^'"]+['"]\s*\)/i.test(block)
+  );
+  const repeatedDebugWithContext = extractForBlocks(source).some((block) => {
+    const calls = block.match(/console\.debug\(([^)]*)\)/gis) ?? [];
+    return calls.some((call) => hasEntityIdentifier(call));
+  });
+  result(repeatedInfo && !repeatedDebugWithContext, repeatedInfo && !repeatedDebugWithContext ? 'medium' : undefined);
+}
+
+function analyzeDurationAndPerformance() {
+  const durationPattern = /duration\s*[:=]\s*(\$\{[^}]+\}|[^,}\n]+)/gi;
+  const occurrences = [...source.matchAll(durationPattern)];
+  const hasUnqualifiedDuration = occurrences.some((match) => {
+    const value = match[1].trim();
+    return !/(?:ms|millis(?:econd)?s?|s|sec(?:ond)?s?)\s*$/i.test(value);
+  });
+  result(hasUnqualifiedDuration, hasUnqualifiedDuration ? 'medium' : undefined);
+}
+
 const transversalPrinciples = [
   'existing-capability',
   'unnecessary-mechanism',
@@ -110,6 +171,12 @@ switch (rule) {
     break;
   case 'ci-context-rich-output':
     analyzeCiContextRichOutput();
+    break;
+  case 'log-frequency':
+    analyzeLogFrequency();
+    break;
+  case 'duration-and-performance':
+    analyzeDurationAndPerformance();
     break;
   case 'transversal-principles':
     analyzeTransversalPrinciples();

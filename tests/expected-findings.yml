@@ -221,3 +221,33 @@ cases:
       - rule: transversal-principles
         expected: false
         reason: an operational failure requires diagnostic details that a metric alone would not preserve
+
+  - id: log-frequency-repeated-info
+    fixture: fixtures/log-frequency/repeated-info.js
+    findings:
+      - rule: log-frequency
+        severity: medium
+        expected: true
+        reason: repeated INFO output inside a loop emits the same message without evidence of new information per occurrence
+
+  - id: log-frequency-repeated-debug-with-context
+    fixture: fixtures/log-frequency/repeated-debug-with-context.js
+    findings:
+      - rule: log-frequency
+        expected: false
+        reason: repeated DEBUG output includes an entity identifier that makes each occurrence diagnostically distinct
+
+  - id: duration-unqualified
+    fixture: fixtures/duration-and-performance/unqualified-duration.js
+    findings:
+      - rule: duration-and-performance
+        severity: medium
+        expected: true
+        reason: duration is logged without an explicit unit, preventing consistent automated interpretation
+
+  - id: duration-numeric-unit
+    fixture: fixtures/duration-and-performance/numeric-duration.js
+    findings:
+      - rule: duration-and-performance
+        expected: false
+        reason: duration is represented numerically with an explicit and consistent unit
