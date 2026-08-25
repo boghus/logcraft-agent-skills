@@ -251,3 +251,63 @@ cases:
       - rule: duration-and-performance
         expected: false
         reason: duration is represented numerically with an explicit and consistent unit
+
+  - id: when-to-log-meaningful-event
+    fixture: fixtures/when-to-log/meaningful-event.js
+    findings:
+      - rule: when-to-log
+        expected: false
+        reason: the log records the outcome of an important operation and provides useful operational information
+
+  - id: when-to-log-routine-flow
+    fixture: fixtures/when-to-log/routine-flow.js
+    findings:
+      - rule: when-to-log
+        severity: medium
+        expected: true
+        reason: routine execution messages do not provide an operational question the log helps answer
+
+  - id: when-not-to-log-routine-flow
+    fixture: fixtures/when-not-to-log/routine-flow.js
+    findings:
+      - rule: when-not-to-log
+        severity: medium
+        expected: true
+        reason: method entry and routine processing messages add execution noise without operational value
+
+  - id: when-not-to-log-meaningful-event
+    fixture: fixtures/when-not-to-log/meaningful-event.js
+    findings:
+      - rule: when-not-to-log
+        expected: false
+        reason: an important synchronization outcome provides actionable operational information
+
+  - id: context-sufficient
+    fixture: fixtures/context/sufficient-context.js
+    findings:
+      - rule: context
+        expected: false
+        reason: the event includes a relevant entity, operation continuity, and known outcome
+
+  - id: context-insufficient
+    fixture: fixtures/context/insufficient-context.js
+    findings:
+      - rule: context
+        severity: medium
+        expected: true
+        reason: a failure log lacks relevant context needed to understand or relate the operation
+
+  - id: context-initial-context-followed-by-failure
+    fixture: fixtures/context/initial-context-followed-by-failure.js
+    findings:
+      - rule: context
+        severity: medium
+        expected: true
+        reason: every failure event must carry sufficient context independently of earlier logs
+
+  - id: context-balanced-arguments
+    fixture: fixtures/context/balanced-arguments.js
+    findings:
+      - rule: context
+        expected: false
+        reason: parentheses inside quotes or nested calls do not truncate the captured log body
