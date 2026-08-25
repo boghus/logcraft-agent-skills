@@ -311,3 +311,41 @@ cases:
       - rule: context
         expected: false
         reason: parentheses inside quotes or nested calls do not truncate the captured log body
+
+  - id: identifiers-atomic
+    fixture: fixtures/identifiers-and-uuids/atomic-identifier.js
+    findings:
+      - rule: identifiers-and-uuids
+        expected: false
+        reason: the log uses the most atomic identifier for the entity being processed
+
+  - id: identifiers-broad-parent
+    fixture: fixtures/identifiers-and-uuids/broad-parent-identifier.js
+    findings:
+      - rule: identifiers-and-uuids
+        severity: medium
+        expected: true
+        reason: a broader parent identifier is used even though the child entity has its own atomic identifier
+
+  - id: identifiers-redundant-uuid
+    fixture: fixtures/identifiers-and-uuids/redundant-uuid.js
+    findings:
+      - rule: identifiers-and-uuids
+        severity: medium
+        expected: true
+        reason: a new UUID is generated even though an existing entity identifier already identifies the event
+
+  - id: traceability-preserved-correlation
+    fixture: fixtures/traceability/preserved-correlation.js
+    findings:
+      - rule: traceability
+        expected: false
+        reason: the existing correlation identifier is preserved in logs and propagated to the downstream operation
+
+  - id: traceability-broken-correlation
+    fixture: fixtures/traceability/broken-correlation.js
+    findings:
+      - rule: traceability
+        severity: medium
+        expected: true
+        reason: the operation continues downstream without propagating its existing correlation context
