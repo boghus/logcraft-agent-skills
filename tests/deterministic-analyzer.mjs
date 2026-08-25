@@ -96,20 +96,6 @@ function hasEntityIdentifier(argumentsSource) {
   return /(?:\b(?:id|uuid|key|name)\b\s*[:=]\s*[^,)}]+|\b(?:employee|user|record|item)\.(?:id|uuid|key|name)\b)/i.test(argumentsSource);
 }
 
-function analyzeLogFrequency() {
-  const blocks = extractForBlocks(source);
-  const repeatedInfo = blocks.some((block) => /console\.info\(\s*['"][^'"]+['"]\s*\)/i.test(block));
-  const repeatedDebugWithContext = blocks.some((block) => extractCalls(block, /console\.debug/gi).some((call) => hasEntityIdentifier(call)));
-  result(repeatedInfo && !repeatedDebugWithContext, repeatedInfo && !repeatedDebugWithContext ? 'medium' : undefined);
-}
-
-function analyzeDurationAndPerformance() {
-  const durationPattern = /duration\s*[:=]\s*(\$\{[^}]+\}|[^,}\n]+)/gi;
-  const occurrences = [...source.matchAll(durationPattern)];
-  const hasUnqualifiedDuration = occurrences.some((match) => !/(?:ms|millis(?:econd)?s?|s|sec(?:ond)?s?)\s*$/i.test(match[1].trim()));
-  result(hasUnqualifiedDuration, hasUnqualifiedDuration ? 'medium' : undefined);
-}
-
 function extractCalls(input, headerPattern) {
   const calls = [];
   const header = new RegExp(headerPattern.source, headerPattern.flags.includes('g') ? headerPattern.flags : headerPattern.flags + 'g');
@@ -143,8 +129,20 @@ function loggerCalls() {
   return extractCalls(source, /logger\.(info|warn|error|debug)/gi);
 }
 
-// Prefixes (synchroniz, migrat, authoriz, deploy) match multiple inflections:
-// synchronize/synchronization, migrate/migration, authorize/authorization, deploy/deployed/deployment.
+function analyzeLogFrequency() {
+  const blocks = extractForBlocks(source);
+  const repeatedInfo = blocks.some((block) => /console\.info\(\s*['"][^'"]+['"]\s*\)/i.test(block));
+  const repeatedDebugWithContext = blocks.some((block) => extractCalls(block, /console\.debug/gi).some((call) => hasEntityIdentifier(call)));
+  result(repeatedInfo && !repeatedDebugWithContext, repeatedInfo && !repeatedDebugWithContext ? 'medium' : undefined);
+}
+
+function analyzeDurationAndPerformance() {
+  const durationPattern = /duration\s*[:=]\s*(\$\{[^}]+\}|[^,}\n]+)/gi;
+  const occurrences = [...source.matchAll(durationPattern)];
+  const hasUnqualifiedDuration = occurrences.some((match) => !/(?:ms|millis(?:econd)?s?|s|sec(?:ond)?s?)\s*$/i.test(match[1].trim()));
+  result(hasUnqualifiedDuration, hasUnqualifiedDuration ? 'medium' : undefined);
+}
+
 function hasMeaningfulLog() {
   return loggerCalls().some((log) => /(?:processed|completed|failed|recovered|synchroniz|deployed|migration|authorization|outcome)/i.test(log));
 }
@@ -178,6 +176,25 @@ function analyzeContext() {
   result(hasInsufficientContext, hasInsufficientContext ? 'medium' : undefined);
 }
 
+function analyzeIdentifiersAndUuids() {
+  const hasLog = /logger\.(info|warn|error|debug)\s*\(/i.test(source);
+  const hasAtomicIdentifier = /\b(?:licenseId|orderId|paymentId|entityId)\b/i.test(source);
+  const hasBroaderIdentifier = /\b(?:workerId|tenantId|parentId)\b/i.test(source);
+  const generatesUuid = /(?:crypto\.randomUUID|UUID\.randomUUID|uuid\s*\()/i.test(source);
+  const hasExistingIdentifier = /\b(?:licenseId|orderId|paymentId|entityId|requestId|correlationId|traceId)\b/i.test(source);
+  const finding = hasLog && ((hasBroaderIdentifier && hasAtomicIdentifier) || (generatesUuid && hasExistingIdentifier));
+  result(finding, finding ? 'medium' : undefined);
+}
+
+function analyzeTraceability() {
+  const hasCorrelation = /\b(?:correlationId|correlation_id|requestId|request_id|traceId|trace_id|operationId|operation_id)\b/i.test(source);
+  const propagatesCorrelation = /(?:send|publish|dispatch|emit|enqueue)\s*\([^)]*\b(?:correlationId|correlation_id|requestId|request_id|traceId|trace_id|operationId|operation_id)\b/i.test(source);
+  const downstreamDropsCorrelation = /(?:send|publish|dispatch|emit|enqueue)\s*\(\s*\{\s*\}\s*\)/i.test(source);
+  const completedWithoutCorrelation = /logger\.(info|warn|error|debug)\s*\([^)]*completed[^)]*\)/i.test(source) && !/completed[\s\S]{0,250}\b(?:correlationId|correlation_id|requestId|request_id|traceId|trace_id|operationId|operation_id)\b/i.test(source);
+  const finding = hasCorrelation && ((!propagatesCorrelation && downstreamDropsCorrelation) || completedWithoutCorrelation);
+  result(finding, finding ? 'medium' : undefined);
+}
+
 const transversalPrinciples = ['existing-capability', 'unnecessary-mechanism', 'unsupported-capability', 'appropriate-observability'];
 
 function analyzeTransversalPrinciples() {
@@ -202,6 +219,8 @@ switch (rule) {
   case 'when-to-log': analyzeWhenToLog(); break;
   case 'when-not-to-log': analyzeWhenNotToLog(); break;
   case 'context': analyzeContext(); break;
+  case 'identifiers-and-uuids': analyzeIdentifiersAndUuids(); break;
+  case 'traceability': analyzeTraceability(); break;
   case 'transversal-principles': analyzeTransversalPrinciples(); break;
   default:
     console.error(`Unsupported rule: ${rule}`);
